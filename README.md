@@ -13,12 +13,17 @@ A self-healing Kubernetes lab that simulates real-world failures and automatical
 
 ## 📁 Project Structure
 
-.kube-resilience-lab/
-├── .github/workflows/ # CI/CD workflows
-├── ansible/ # Playbooks for remediation
-├── python/ # Exporters and scripts
-├── prometheus/ # Prometheus config & rules
-├── grafana/ # Dashboard JSON files
-├── kubernetes/ # YAML manifests
-└── README.md # Project overview
+```text
+kube-resilience-lab/
+├── .github/workflows/       # GitHub Actions CI/CD pipelines
+├── ansible/                 # Remediation playbooks
+├── python/
+│   └── custom_exporters/    # Prometheus exporters and utility scripts
+├── prometheus/
+│   └── rules/               # Alerting and recording rules
+├── grafana/
+│   └── dashboards/          # Dashboard JSON configs
+├── kubernetes/
+│   └── manifests/           # K8s deployment files
+└── README.md                # Project documentation
 
