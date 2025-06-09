@@ -133,9 +133,10 @@ if [ "$INSTALL_NGINX" = "true" ]; then
     --timeout=120s
 
   # Patch to expose it on external IP
+  echo "🌐 Patching NGINX Ingress to expose via external IP $IP_ADDRESS..."
   kubectl patch svc nginx-ingress-ingress-nginx-controller \
     -n ingress-nginx \
-    -p '{"spec": {"externalIPs": ["192.168.56.120"]}}'
+    -p "{\"spec\": {\"externalIPs\": [\"$IP_ADDRESS\"]}}"
 fi
 
 # ─────────────────────────────────────────────
@@ -205,5 +206,5 @@ echo ""
 echo "$TOKEN"
 echo ""
 echo "📎 Add this to your macOS /etc/hosts:"
-echo "192.168.56.120 flask.kube-lab.local grafana.kube-lab.local prometheus.kube-lab.local k8s-dashboard.kube-lab.local todo.kube-lab.local"
+echo "$IP_ADDRESS flask.kube-lab.local grafana.kube-lab.local prometheus.kube-lab.local k8s-dashboard.kube-lab.local todo.kube-lab.local"
 # }
