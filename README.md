@@ -101,18 +101,46 @@ The IP you input from the Wizard
 ```text
 kube-resilience-lab/
 ├── grafana/
-│   ├── dashboards/
+│   └── dashboards/
+│       ├── flask_metrics.json
+│       └── flask_metrics.json
 │   └── provisioning/
 │       └── dashboards/
+│           └── flask_dashboard.yml
 │       └── datasources/
+│           └── prometheus.yml
 ├── kubernetes/
-│   ├── ingress/
-│   ├── k8s-dashboard/ <- admin-user
+│   └── ingress/
+│       ├── ingress-flask.yaml
+│       ├── ingress-grafana.yaml
+│       ├── ingress-k8s-dashboard.yaml
+│       ├── ingress-prometheus.yaml
+│       └── ingress-todo.yaml
+│   └── k8s-dashboard/
+│       └── admin-user.yaml
 │   └── manifests/
+│       ├── flask-app.yml
+│       ├── grafana-deployment.yaml
+│       ├── grafana-service.yaml
+│       ├── prometheus-config.yaml
+│       ├── prometheus-deployment.yaml
+│       ├── prometheus-service.yaml
+│       ├── todo-app-deployment.yaml
+│       └── todo-app-service.yaml
 ├── prometheus/
+│   └── prometheus.yml
 ├── python/
-│   ├── flask-metrics-app/
+│   └── flask-metrics-app/
+│       ├── app.py
+│       ├── Dockerfile
+│       └── requirements.txt
 │   └── flask-todo-app/
+│       ├── app.py
+│       ├── Dockerfile
+│       ├── requirements.txt
+│       └── templates/
+│           └── index.html
+├── .gitignore
 ├── env.conf
 ├── Vagrantfile
 ├── provision.sh
@@ -135,11 +163,11 @@ kube-resilience-lab/
 
 ---
 ```
-## 📄 License
+<!-- ## 📄 License
 
 MIT License
 
----
+--- -->
 
 ## 👨‍💻 Author
 

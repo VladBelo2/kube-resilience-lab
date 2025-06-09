@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import webbrowser
+import update_hosts
 
 # --- PyQt5 Auto-Installer ---
 try:
@@ -31,8 +32,19 @@ class WelcomePage(QWizardPage):
         self.setSubTitle("This wizard will guide you through setting up the lab.")
 
         layout = QVBoxLayout()
-        label = QLabel("This wizard will guide you through setting up the lab.")
-        layout.addWidget(label)
+        description = QLabel("""
+            <p>
+                <b>🚀 Kube Resilience Lab</b><br>
+                A self-contained Kubernetes resilience lab using <b>K3s</b>, provisioned via <b>Vagrant</b>,
+                preconfigured with <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, and realistic apps like
+                a Flask metrics API and a To-Do app.
+            </p>
+            <p>
+                Ideal for <i>learning, observability, chaos testing, and automation.</i>
+            </p>
+        """)
+        description.setWordWrap(True)
+        layout.addWidget(description)
         self.setLayout(layout)
 
     def initializePage(self):
@@ -55,9 +67,18 @@ class IPInputPage(QWizardPage):
         self.warning.setStyleSheet("color: red")
 
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Private IP:"))
+        layout.addWidget(QLabel("📡 Private IP:"))
         layout.addWidget(self.ip_input)
+        description = QLabel("""
+            <p>
+                Enter the IP address that will be assigned to the virtual machine. <br>
+                Example: <code>192.168.56.120</code><br><br>
+                This will be used for Ingress, Hostname Mapping, and External Access.
+            </p>
+        """)
+        description.setWordWrap(True)
         layout.addWidget(self.warning)
+        layout.addWidget(description)
         self.setLayout(layout)
 
     def validatePage(self):
@@ -205,32 +226,36 @@ class FinishPage(QWizardPage):
         self.setTitle("Setup Complete!")
         self.setSubTitle("Everything is ready! Click the links below to visit services:")
         self.token_path = os.path.abspath("dashboard_token.txt")
-
-        links = """
-        <ul>
-            <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
-            <li><a href="http://prometheus.kube-lab.local">Prometheus</a></li>
-            <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
-            <li><a href="http://flask.kube-lab.local">Flask App</a></li>
-            <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
-        </ul>
-        <p><b>🔑 K8s-Dashboard Token (Save it somewhere...):</b><br> <a href="file_token">View Token</a></p>
-        """
-
-        self.label = QLabel(links)
-        self.label.setOpenExternalLinks(False)  # Let us handle link clicks
-        self.label.linkActivated.connect(self.open_token_link)
-
         layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        self.setLayout(layout)
 
-    def open_token_link(self, link):
-        if link == "file_token" and os.path.exists(self.token_path):
-            print(f"🔓 Opening token file: {self.token_path}")
-            webbrowser.open(f"file://{self.token_path}")
+        links = QLabel("""
+            <ul>
+                <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
+                <li><a href="http://prometheus.kube-lab.local">Prometheus</a></li>
+                <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
+                <li><a href="http://flask.kube-lab.local">Flask App</a></li>
+                <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
+            </ul>
+        """)
+        links.setOpenExternalLinks(True)
+        layout.addWidget(links)
+
+        # View Token section (handled separately)
+        self.token_label = QLabel("🔑 <b>K8s-Dashboard Token</b> (one-time):<br>")
+        self.token_link = QLabel('<a href="#">📂 View Token</a>')
+        self.token_link.setOpenExternalLinks(False)
+        self.token_link.linkActivated.connect(self.open_token_file)
+
+        layout.addWidget(self.token_label)
+        layout.addWidget(self.token_link)
+        self.setLayout(layout)
+        
+    def open_token_file(self):
+        token_path = os.path.abspath("dashboard_token.txt")
+        if os.path.exists(token_path):
+            webbrowser.open(f"file://{token_path}")
         else:
-            QMessageBox.warning(self, "Token Not Found", "Token file not found!")
+            QMessageBox.warning(self, "Error", "Token file not found!")
 
     def cleanup_token(self):
         if os.path.exists(self.token_path):
@@ -266,7 +291,7 @@ class KubeWizard(QWizard):
         self.addPage(IPInputPage())
         self.addPage(ProgressPage())
         self.addPage(FinishPage())
-
+        self.resize(640, 480)
 
 def main():
     app = QApplication(sys.argv)
