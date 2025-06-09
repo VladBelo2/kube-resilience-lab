@@ -84,7 +84,9 @@ Access the Lab
 | Grafana       | http://grafana.kube-lab.local            |
 | Flask App     | http://flask.kube-lab.local              |
 | To-Do App     | http://todo.kube-lab.local               |
+
 ```
+
 ---
 
 ## 📸 Screenshots
@@ -122,7 +124,7 @@ kube-resilience-lab/
 ```
 ---
 
-## Optional CI + Next Features + License
+## Optional CI + Next Features
 
 ```markdown
  🧪 Coming Soon
@@ -132,6 +134,7 @@ kube-resilience-lab/
 - 📊 Push metrics to InfluxDB
 - 🔄 GitHub Actions CI for `vagrant up` validation
 ```
+
 <!-- ## 📄 License
 
 MIT License
