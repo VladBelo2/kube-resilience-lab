@@ -1,8 +1,22 @@
-*.pyc
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Vagrant
 .vagrant/
+*.box
+
+# Logs
 *.log
-*.DS_Store
-*.swp
-.idea/
+
+# Secrets
+*.pem
+*.key
 .env

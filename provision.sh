@@ -86,26 +86,10 @@ if [ "$INSTALL_K8S_DASHBOARD" = "true" ]; then
   sudo -u vagrant kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/k8s-dashboard/admin-user.yml
   echo "🔑 Creating and displaying dashboard token..."
   TOKEN=$(sudo kubectl -n kubernetes-dashboard create token admin-user)
-  echo -e "\n📎 Dashboard Token:\n\n$TOKEN\n"
+  # echo -e "\n📎 Dashboard Token:\n\n$TOKEN\n"
 fi
 
 # ─────────────────────────────────────────────
-# if [ "$INSTALL_FLASK_METRICS" = "true" ]; then
-#   if [ -d /home/vagrant/kube-resilience-lab/python/flask-metrics-app ]; then
-#     echo "🐍 Building Flask Docker image..."
-#     cp -r /home/vagrant/kube-resilience-lab/python/flask-metrics-app /home/vagrant/flask-metrics-app
-#     cd /home/vagrant/flask-metrics-app
-#     # sudo -u vagrant docker build -t flask-metrics:latest .
-#     sudo docker build -t local/flask-metrics:latest .
-#     # sudo -u vagrant docker save flask-metrics:latest -o /tmp/flask-metrics.tar
-#     # sudo ctr --namespace k8s.io images import /tmp/flask-metrics.tar
-#     sudo docker save local/flask-metrics:latest -o /tmp/flask-metrics.tar
-#     sudo ctr --namespace k8s.io images import /tmp/flask-metrics.tar
-#     echo "🚀 Deploying Flask app to Kubernetes..."
-#     sudo -u vagrant kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/flask-app.yml
-#   fi
-# fi
-
 if [ "$INSTALL_FLASK_METRICS" = "true" ]; then
   echo "🚀 Deploying Flask app using Docker Hub image..."
   sudo -u vagrant kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/flask-app.yml
@@ -194,6 +178,8 @@ if [ "$INSTALL_INGRESS_RULES" = "true" ]; then
 fi
 
 # ─────────────────────────────────────────────
+# ✅ Success
+echo "✅ Setup complete!"
 # Display IPs
 # all_ips=$(ip -o -4 addr show | awk '!/127.0.0.1/ && !/docker/ {print $2, $4}' | cut -d/ -f1)
 # nat_ip=""
@@ -218,9 +204,6 @@ echo "🔑 K8s Dashboard Token:"
 echo ""
 echo "$TOKEN"
 echo ""
-
-# ✅ Success
-echo "✅ Setup complete!"
 echo "📎 Add this to your macOS /etc/hosts:"
 echo "192.168.56.120 flask.kube-lab.local grafana.kube-lab.local prometheus.kube-lab.local k8s-dashboard.kube-lab.local todo.kube-lab.local"
 # }
