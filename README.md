@@ -48,6 +48,10 @@ cd kube-resilience-lab
 
 ### 2. Launch the Wizard
 
+```bash
+- python3 launch.py
+```
+
 - Prompts for a private IP (e.g. 192.168.56.120)
 
 - Edits Vagrantfile dynamically
