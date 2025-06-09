@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'flask-app'
+    static_configs:
+      - targets: ['flask-service:8000']
+
+  - job_name: 'todo-app'
+    static_configs:
+      - targets: ['todo-service:5000']

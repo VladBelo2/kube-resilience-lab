@@ -1,0 +1,28 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "Flask App Metrics",
+  "tags": [],
+  "timezone": "browser",
+  "schemaVersion": 27,
+  "version": 1,
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "type": "graph",
+      "title": "HTTP Requests Over Time",
+      "targets": [
+        {
+          "expr": "http_requests_total",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ]
+}
