@@ -70,12 +70,12 @@ The IP you input from the Wizard
 
 ---
 
-## ✅ STEP 3: Access URLs
+## 🌐 Access URLs
 
 ```markdown
 ---
 
-## 🌐 Access the Lab
+## Access the Lab
 
 | Service       | URL                                      |
 | ------------- | ---------------------------------------- |
@@ -101,45 +101,18 @@ The IP you input from the Wizard
 ```text
 kube-resilience-lab/
 ├── grafana/
-│   └── dashboards/
-│       ├── flask_metrics.json
-│       └── flask_metrics.json
+│   ├── dashboards/
 │   └── provisioning/
-│       └── dashboards/
-│           └── flask_dashboard.yml
+│       ├── dashboards/
 │       └── datasources/
-│           └── prometheus.yml
 ├── kubernetes/
-│   └── ingress/
-│       ├── ingress-flask.yaml
-│       ├── ingress-grafana.yaml
-│       ├── ingress-k8s-dashboard.yaml
-│       ├── ingress-prometheus.yaml
-│       └── ingress-todo.yaml
-│   └── k8s-dashboard/
-│       └── admin-user.yaml
+│   ├── ingress/
+│   ├── k8s-dashboard/
 │   └── manifests/
-│       ├── flask-app.yml
-│       ├── grafana-deployment.yaml
-│       ├── grafana-service.yaml
-│       ├── prometheus-config.yaml
-│       ├── prometheus-deployment.yaml
-│       ├── prometheus-service.yaml
-│       ├── todo-app-deployment.yaml
-│       └── todo-app-service.yaml
 ├── prometheus/
-│   └── prometheus.yml
 ├── python/
-│   └── flask-metrics-app/
-│       ├── app.py
-│       ├── Dockerfile
-│       └── requirements.txt
+│   ├── flask-metrics-app/
 │   └── flask-todo-app/
-│       ├── app.py
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       └── templates/
-│           └── index.html
 ├── .gitignore
 ├── env.conf
 ├── Vagrantfile
@@ -149,7 +122,7 @@ kube-resilience-lab/
 ```
 ---
 
-## ✅ STEP 4: Optional CI + Next Features + License
+## Optional CI + Next Features + License
 
 ```markdown
 ---
