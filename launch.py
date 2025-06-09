@@ -194,7 +194,7 @@ class FinishPage(QWizardPage):
 
         links = """
         <ul>
-            <li><a href="http://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
+            <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
             <li><a href="http://prometheus.kube-lab.local">Prometheus</a></li>
             <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
             <li><a href="http://flask.kube-lab.local">Flask App</a></li>
