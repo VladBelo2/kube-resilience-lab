@@ -56,10 +56,11 @@ cd kube-resilience-lab
 
 - Supports GUI wizard (PyQt5) with embedded terminal
 
-3. Update Hosts File
+### 3. Update Hosts File
 Add this to /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows):
 
-192.168.56.120 flask.kube-lab.local todo.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local dashboard.kube-lab.local
+The IP you input from the Wizard 
+(e.g. 192.168.56.120) flask.kube-lab.local todo.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local k8s-dashboard.kube-lab.local
 
 
 ---
@@ -98,7 +99,11 @@ kube-resilience-lab/
 ├── grafana/
 │   ├── dashboards/
 │   └── provisioning/
+│       └── dashboards/
+│       └── datasources/
 ├── kubernetes/
+│   ├── ingress/
+│   ├── k8s-dashboard/ <- admin-user
 │   └── manifests/
 ├── prometheus/
 ├── python/
