@@ -79,7 +79,7 @@ The IP you input from the Wizard
 
 | Service       | URL                                      |
 | ------------- | ---------------------------------------- |
-| K8s Dashboard | https://k8s-dashboard.kube-lab.local      |
+| K8s Dashboard | https://k8s-dashboard.kube-lab.local     |
 | Prometheus    | http://prometheus.kube-lab.local         |
 | Grafana       | http://grafana.kube-lab.local            |
 | Flask App     | http://flask.kube-lab.local              |
