@@ -79,7 +79,7 @@ The IP you input from the Wizard
 | Grafana       | http://grafana.kube-lab.local            |
 | Flask App     | http://flask.kube-lab.local              |
 | To-Do App     | http://todo.kube-lab.local               |
-
+```
 ---
 
 ## 📸 Screenshots
@@ -93,8 +93,7 @@ The IP you input from the Wizard
 ---
 
 ## 📁 Folder Structure
-
-```bash
+```text
 kube-resilience-lab/
 ├── grafana/
 │   ├── dashboards/
@@ -130,7 +129,7 @@ kube-resilience-lab/
 - 🔄 GitHub Actions CI for `vagrant up` validation
 
 ---
-
+```
 ## 📄 License
 
 MIT License
