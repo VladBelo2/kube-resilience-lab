@@ -1,6 +1,7 @@
 # 🚀 Kube Resilience Lab
 
-A fully automated, cross-platform Kubernetes lab with self-healing apps, Prometheus/Grafana monitoring, Ingress routing, and a sleek PyQt5 installation wizard.
+A self-contained Kubernetes resilience lab using K3s, provisioned via Vagrant, with Prometheus, Grafana, Ingress, and real-world apps. Fully automated with a GUI wizard (launch.py), focused on simulating and observing failures.
+
 
 Designed for:
 - Site Reliability Engineers (SRE)

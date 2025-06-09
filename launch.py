@@ -1,12 +1,27 @@
 import sys
 import subprocess
-from PyQt5.QtWidgets import (
-    QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QVBoxLayout,
-    QTextEdit, QPushButton, QMessageBox, QHBoxLayout
-)
-from PyQt5.QtCore import Qt, QProcess, QTimer
-import re
+
+# --- PyQt5 Auto-Installer ---
+try:
+    from PyQt5.QtWidgets import (
+        QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QVBoxLayout,
+        QTextEdit, QPushButton, QMessageBox, QHBoxLayout
+    )
+    from PyQt5.QtCore import Qt, QProcess, QTimer
+except ImportError:
+    print("📦 PyQt5 not found. Attempting to install it...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "PyQt5"])
+        print("✅ PyQt5 installed successfully. Restarting...")
+        # Re-run the script after install
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as e:
+        print(f"❌ Failed to install PyQt5: {e}")
+        sys.exit(1)
+
+# --- Main Logic Begins After Successful Import ---
 import os
+import re
 
 class WelcomePage(QWizardPage):
     def __init__(self):
@@ -47,16 +62,38 @@ class IPInputPage(QWizardPage):
     def validatePage(self):
         ip = self.ip_input.text().strip()
         if not ip:
-            self.error_label.setText("IP address cannot be empty.")
+            self.warning.setText("IP address cannot be empty.")
             return False
 
-        # Basic IP format check (you can extend this)
         if not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", ip):
-            self.error_label.setText("Invalid IP format.")
+            self.warning.setText("Invalid IP format.")
             return False
 
-        # Modify Vagrantfile
         try:
+            # ✅ Smart update of env.conf (preserve other lines)
+            env_conf_path = "env.conf"
+            ip_line = f"IP_ADDRESS={ip}\n"
+            updated = False
+
+            # Read existing lines if file exists
+            if os.path.exists(env_conf_path):
+                with open(env_conf_path, "r") as f:
+                    lines = f.readlines()
+            else:
+                lines = []
+
+            # Write back lines, updating IP_ADDRESS or appending it
+            with open(env_conf_path, "w") as f:
+                for line in lines:
+                    if line.startswith("IP_ADDRESS="):
+                        f.write(ip_line)
+                        updated = True
+                    else:
+                        f.write(line)
+                if not updated:
+                    f.write(ip_line)
+
+            # ✅ Update Vagrantfile
             with open("Vagrantfile", "r") as f:
                 lines = f.readlines()
             with open("Vagrantfile", "w") as f:
@@ -65,10 +102,12 @@ class IPInputPage(QWizardPage):
                         f.write(f'  config.vm.network "private_network", ip: "{ip}"\n')
                     else:
                         f.write(line)
-            print(f"✅ Updated Vagrantfile with IP: {ip}")
+
+            print(f"✅ Updated IP to {ip} in Vagrantfile and env.conf")
             return True
+
         except Exception as e:
-            self.error_label.setText(f"Failed to update Vagrantfile: {str(e)}")
+            self.warning.setText(f"Failed to update Vagrantfile or env.conf: {str(e)}")
             return False
 
 
