@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import webbrowser
 
 # --- PyQt5 Auto-Installer ---
 try:
@@ -172,6 +173,18 @@ class ProgressPage(QWizardPage):
         wizard = self.wizard()
         self.log_output.append("\n✅ Provisioning complete.\n")
 
+        # 🧪 Get K8s Dashboard Token and save it to file
+        try:
+            token = subprocess.check_output(
+                ["vagrant", "ssh", "-c", "sudo kubectl -n kubernetes-dashboard create token admin-user"],
+                universal_newlines=True
+            )
+            with open("dashboard_token.txt", "w") as f:
+                f.write(token.strip())
+            print("✅ Saved K8s Dashboard token to dashboard_token.txt")
+        except Exception as e:
+            print(f"❌ Failed to get dashboard token: {e}")
+
         # Enable navigation
         wizard.button(QWizard.NextButton).setEnabled(True)
         wizard.button(QWizard.BackButton).setEnabled(True)
@@ -191,6 +204,7 @@ class FinishPage(QWizardPage):
         super().__init__()
         self.setTitle("Setup Complete!")
         self.setSubTitle("Everything is ready! Click the links below to visit services:")
+        self.token_path = os.path.abspath("dashboard_token.txt")
 
         links = """
         <ul>
@@ -200,13 +214,31 @@ class FinishPage(QWizardPage):
             <li><a href="http://flask.kube-lab.local">Flask App</a></li>
             <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
         </ul>
+        <p><b>🔑 K8s-Dashboard Token (Save it somewhere...):</b><br> <a href="file_token">View Token</a></p>
         """
-        label = QLabel(links)
-        label.setOpenExternalLinks(True)
+
+        self.label = QLabel(links)
+        self.label.setOpenExternalLinks(False)  # Let us handle link clicks
+        self.label.linkActivated.connect(self.open_token_link)
 
         layout = QVBoxLayout()
-        layout.addWidget(label)
+        layout.addWidget(self.label)
         self.setLayout(layout)
+
+    def open_token_link(self, link):
+        if link == "file_token" and os.path.exists(self.token_path):
+            print(f"🔓 Opening token file: {self.token_path}")
+            webbrowser.open(f"file://{self.token_path}")
+        else:
+            QMessageBox.warning(self, "Token Not Found", "Token file not found!")
+
+    def cleanup_token(self):
+        if os.path.exists(self.token_path):
+            try:
+                os.remove(self.token_path)
+                print("🧹 Token file deleted after finish.")
+            except Exception as e:
+                print(f"⚠️ Failed to delete token file: {e}")
 
     def initializePage(self):
         wizard = self.wizard()
@@ -239,6 +271,11 @@ class KubeWizard(QWizard):
 def main():
     app = QApplication(sys.argv)
     wizard = KubeWizard()
+
+    # Connect Finish click to token cleanup
+    finish_page = wizard.page(3)  # Index of FinishPage
+    wizard.finished.connect(finish_page.cleanup_token)
+
     wizard.show()
     sys.exit(app.exec_())
 
