@@ -1,0 +1,30 @@
+{
+  "title": "To-Do App Metrics",
+  "schemaVersion": 30,
+  "version": 1,
+  "tags": ["todo", "app"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Tasks Added",
+      "targets": [{ "expr": "todo_tasks_added_total", "refId": "A" }],
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": "Prometheus"
+    },
+    {
+      "type": "stat",
+      "title": "Tasks Completed",
+      "targets": [{ "expr": "todo_tasks_completed_total", "refId": "B" }],
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": "Prometheus"
+    },
+    {
+      "type": "stat",
+      "title": "Tasks Deleted",
+      "targets": [{ "expr": "todo_tasks_deleted_total", "refId": "C" }],
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": "Prometheus"
+    }
+  ]
+}
