@@ -65,17 +65,17 @@ python3 launch.py
 Add this to /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows):
 
 The IP you input from the Wizard 
+```markdown
 (e.g. 192.168.56.120) flask.kube-lab.local todo.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local k8s-dashboard.kube-lab.local
-
+```
 
 ---
 
 ## 🌐 Access URLs
 
 ```markdown
----
 
-## Access the Lab
+Access the Lab
 
 | Service       | URL                                      |
 | ------------- | ---------------------------------------- |
@@ -125,16 +125,12 @@ kube-resilience-lab/
 ## Optional CI + Next Features + License
 
 ```markdown
----
-
-## 🧪 Coming Soon
+ 🧪 Coming Soon
 
 - 🔁 Chaos Toolkit Integration
 - 📦 More Flask services (auth, DB integration)
 - 📊 Push metrics to InfluxDB
 - 🔄 GitHub Actions CI for `vagrant up` validation
-
----
 ```
 <!-- ## 📄 License
 
