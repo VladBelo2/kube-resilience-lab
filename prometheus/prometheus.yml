@@ -13,3 +13,12 @@ scrape_configs:
   - job_name: 'todo-app'
     static_configs:
       - targets: ['todo-service:5000']
+
+  - job_name: 'remediator'
+    static_configs:
+      - targets: ['remediator:8001']
+        labels:
+          instance: 'remediator'
+          
+rule_files:
+  - "/etc/alert-rules/alerts.yml"

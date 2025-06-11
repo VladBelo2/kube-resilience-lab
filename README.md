@@ -69,13 +69,20 @@ The IP you input from the Wizard
 (e.g. 192.168.56.120) flask.kube-lab.local todo.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local k8s-dashboard.kube-lab.local
 ```
 
+### Extra Tip:
+By default, there is an active Cronjob for failure-simulate to randomally delete pod and recreate it immediately.
+To stop the cronjob for failure-simulator run the following inside the VM:
+```bash
+kubectl patch cronjob failure-simulator -p '{"spec" : {"suspend" : true }}
+```
+
+Or you can set the env.conf variable ENABLE_CHAOS_SIMULATOR=false and run the provision.sh again.
+
 ---
 
 ## 🌐 Access URLs
 
-```markdown
-
-Access the Lab
+Access the Lab:
 
 | Service       | URL                                      |
 | ------------- | ---------------------------------------- |
@@ -85,7 +92,17 @@ Access the Lab
 | Flask App     | http://flask.kube-lab.local              |
 | To-Do App     | http://todo.kube-lab.local               |
 
+---
+
+## 🔑 Accessing Kubernetes Dashboard
+
+Run this command inside the VM to get your login token:
+
+```bash
+kubectl -n kubernetes-dashboard get secret static-admin-user-token -o jsonpath="{.data.token}" | base64 --decode
 ```
+
+📝 Or use the installer wizard and click 📂 View Token after setup.
 
 ---
 

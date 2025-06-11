@@ -26,6 +26,8 @@ spec:
             mountPath: /var/lib/grafana/dashboards
           - name: todo-dashboard-json
             mountPath: /var/lib/grafana/dashboards/todo
+          - name: remediator-dashboard-json
+            mountPath: /var/lib/grafana/dashboards/remediator
       volumes:
         - name: grafana-datasources
           configMap:
@@ -39,3 +41,6 @@ spec:
         - name: todo-dashboard-json
           configMap:
             name: todo-dashboard-json
+        - name: remediator-dashboard-json
+          configMap:
+            name: remediator-dashboard-json

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: remediator-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: remediator-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: remediator-binding
+subjects:
+  - kind: ServiceAccount
+    name: remediator-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: remediator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: remediator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: remediator
+  template:
+    metadata:
+      labels:
+        app: remediator
+    spec:
+      serviceAccountName: remediator-sa
+      containers:
+        - name: remediator
+          image: vladbelo2/remediator:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8001

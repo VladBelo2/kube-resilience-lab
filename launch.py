@@ -1,7 +1,9 @@
 import sys
 import subprocess
 import webbrowser
-import update_hosts
+import time
+import os
+
 
 # --- PyQt5 Auto-Installer ---
 try:
@@ -14,11 +16,11 @@ except ImportError:
     print("📦 PyQt5 not found. Attempting to install it...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "PyQt5"])
-        print("✅ PyQt5 installed successfully. Restarting...")
+        print("\033[32m✅ PyQt5 installed successfully. Restarting...\033[0m")
         # Re-run the script after install
         os.execv(sys.executable, [sys.executable] + sys.argv)
     except Exception as e:
-        print(f"❌ Failed to install PyQt5: {e}")
+        print(f"\033[31m❌ Failed to install PyQt5: {e}\033[0m")
         sys.exit(1)
 
 # --- Main Logic Begins After Successful Import ---
@@ -125,7 +127,8 @@ class IPInputPage(QWizardPage):
                     else:
                         f.write(line)
 
-            print(f"✅ Updated IP to {ip} in Vagrantfile and env.conf")
+            print(f"\033[32m✅ Updated IP to {ip} in Vagrantfile and env.conf\033[0m")
+
             return True
 
         except Exception as e:
@@ -153,7 +156,7 @@ class ProgressPage(QWizardPage):
 
     def initializePage(self):
         self.log_output.clear()
-        self.log_output.append("🚀 Starting provisioning script...\n")
+        self.log_output.append('<span style="color:green;">🚀 Starting provisioning script...\n</span>')
 
         # Use QTimer to defer execution until after page is fully shown
         QTimer.singleShot(0, self.setup_and_start_provision)
@@ -185,32 +188,102 @@ class ProgressPage(QWizardPage):
         data = self.process.readAllStandardOutput().data().decode()
         err = self.process.readAllStandardError().data().decode()
         output = data + err
-        self.log_output.append(output.strip())
+
+        for line in output.strip().splitlines():
+            if "[OK]" in line:
+                self.log_output.append(f'<span style="color:green;">{line}</span>')
+            elif "[WARN]" in line:
+                self.log_output.append(f'<span style="color:orange;">{line}</span>')
+            elif "[ERROR]" in line:
+                self.log_output.append(f'<span style="color:red;">{line}</span>')
+            elif "[INFO]" in line:
+                self.log_output.append(f'<span style="color:cyan;">{line}</span>')
+            else:
+                self.log_output.append(line)
+
+        # self.log_output.append(output.strip())
         self.log_output.verticalScrollBar().setValue(
             self.log_output.verticalScrollBar().maximum()
         )
 
     def process_finished(self):
         wizard = self.wizard()
-        self.log_output.append("\n✅ Provisioning complete.\n")
+        if self.process.exitCode() == 0:
+            self.log_output.append('<span style="color:green;">\n✅ Provisioning complete.\n</span>')
+        else:
+            self.log_output.append('<span style="color:orange;">\n ⚠ Provisioning finished with errors.\n</span>')
+            self.log_output.append('<span style="color:orange;">🔍 Please scroll up and review any red or failed lines.n</span>')
+            self.log_output.append('<span style="color: red;">❌ Provisioning had errors. See above for details.</span>')
 
         # 🧪 Get K8s Dashboard Token and save it to file
         try:
             token = subprocess.check_output(
-                ["vagrant", "ssh", "-c", "sudo kubectl -n kubernetes-dashboard create token admin-user"],
+                ["vagrant", "ssh", "-c", "kubectl -n kubernetes-dashboard get secret static-admin-user-token -o jsonpath='{.data.token}' | base64 --decode"],
                 universal_newlines=True
             )
             with open("dashboard_token.txt", "w") as f:
                 f.write(token.strip())
-            print("✅ Saved K8s Dashboard token to dashboard_token.txt")
+            print("\033[32m✅ Saved K8s Dashboard token to dashboard_token.txt\033[0m")
         except Exception as e:
-            print(f"❌ Failed to get dashboard token: {e}")
+            print(f"\033[31m❌ Failed to get dashboard token: {e}.\033[0m")
+
+        # ✅ Check pod health before finishing
+        self.log_output.append("\n🔍 Checking pod health (timeout: 3 minutes)...\n")
+        QApplication.processEvents()
+        try:
+            start_time = time.time()
+            unhealthy = {}
+
+            while time.time() - start_time < 180:  # 3 minutes
+                result = subprocess.run(
+                    ["vagrant", "ssh", "-c", "kubectl get pods --no-headers"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                )
+                lines = result.stdout.strip().splitlines()
+                all_healthy = True
+                unhealthy.clear()
+
+                for line in lines:
+                    parts = line.split()
+                    pod_name = parts[0]
+                    status = parts[2] if len(parts) > 2 else "Unknown"
+                    if status not in ("Running", "Completed"):
+                        unhealthy[pod_name] = status
+                        all_healthy = False
+                        self.log_output.append(f'<span style="color:orange;">⚠ {pod_name}: {status}</span>')
+                        QApplication.processEvents()
+                    else:
+                        self.log_output.append(f'<span style="color:green;">✅ {pod_name}: {status}</span>')
+                        QApplication.processEvents()
+                    
+                if all_healthy:
+                    self.log_output.append('<span style="color:green;"> \n ✅ All pods are healthy! \n </span>')
+                    QApplication.processEvents()
+                    break
+                else:
+                    self.log_output.append("⏳ Waiting 10s before rechecking...\n")
+                    QApplication.processEvents()
+                    time.sleep(10)
+
+            if unhealthy:
+                self.log_output.append("\n⏰ Timeout reached. These pods are not healthy:\n")
+                QApplication.processEvents()
+                for pod, status in unhealthy.items():
+                    self.log_output.append(f"❌ {pod}: {status}")
+                    QApplication.processEvents()
+            else:
+                self.log_output.append('<span style="color:green;"> \n✅ Pod readiness check passed.\n </span>')
+                QApplication.processEvents()
+
+        except Exception as e:
+            self.log_output.append(f'<span style="color:red;">❌ Pod health check error: {e}</span>')
+            QApplication.processEvents()
 
         # Enable navigation
         wizard.button(QWizard.NextButton).setEnabled(True)
         wizard.button(QWizard.BackButton).setEnabled(True)
 
-        # Remove Cancel
+        # Remove Cancel button
         wizard.setOption(QWizard.HaveCustomButton1, False)
 
     def cancel_setup(self):
@@ -231,10 +304,10 @@ class FinishPage(QWizardPage):
         links = QLabel("""
             <ul>
                 <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
-                <li><a href="http://prometheus.kube-lab.local">Prometheus</a></li>
+                <li><a href="http://prometheus.kube-lab.local/targets">Prometheus</a></li>
                 <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
-                <li><a href="http://flask.kube-lab.local">Flask App</a></li>
                 <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
+                <li><a href="http://flask.kube-lab.local">Flask App</a></li>
             </ul>
         """)
         links.setOpenExternalLinks(True)
@@ -261,9 +334,9 @@ class FinishPage(QWizardPage):
         if os.path.exists(self.token_path):
             try:
                 os.remove(self.token_path)
-                print("🧹 Token file deleted after finish.")
+                print("\033[32m🧹 Token file deleted after finish.\033[0m")
             except Exception as e:
-                print(f"⚠️ Failed to delete token file: {e}")
+                print(f"\033[33m⚠ Failed to delete token file: {e}\033[0m")
 
     def initializePage(self):
         wizard = self.wizard()
