@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: failure-simulator
+spec:
+  schedule: "*/2 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: chaos
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+              args:
+                - |
+                  echo "🔥 Looking for a random pod to delete..."
+                  TARGET=$(kubectl get pods -n default \
+                    --field-selector=status.phase=Running \
+                    -o jsonpath='{.items[?(@.metadata.labels.app!="prometheus" && @.metadata.labels.app!="grafana")].metadata.name}' \
+                    | awk '{print $1}')
+                  if [ -n "$TARGET" ]; then
+                    echo "🔥 Deleting pod: $TARGET"
+                    kubectl delete pod "$TARGET" -n default
+                  else
+                    echo "✅ No eligible pods to delete."
+                  fi
+          restartPolicy: OnFailure

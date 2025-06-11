@@ -6,6 +6,7 @@ data:
   prometheus.yml: |
     global:
       scrape_interval: 15s
+
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
@@ -14,7 +15,19 @@ data:
       - job_name: 'flask-app'
         static_configs:
           - targets: ['flask-service:8000']
-          
+
       - job_name: 'todo-app'
         static_configs:
           - targets: ['todo-service:5000']
+
+      - job_name: 'remediator'
+        static_configs:
+          - targets: ['remediator:8001']
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['alertmanager:9093']
+
+    rule_files:
+      - /etc/prometheus/alerts.yml

@@ -20,3 +20,5 @@ __pycache__/
 *.pem
 *.key
 .env
+dashboard_token.txt
+dashboard_static_token.txt

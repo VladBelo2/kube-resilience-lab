@@ -1,0 +1,127 @@
+{
+  "title": "Remediator Metrics",
+  "schemaVersion": 30,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Remediations",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(remediator_restart_total)",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "noValue": "0"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Failed Remediations",
+      "id": 2,
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(remediator_failure_total)",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "noValue": "0"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Prometheus Checks",
+      "id": 3,
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "remediator_check_total",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "noValue": "0"
+      }
+    },
+    {
+      "type": "graph",
+      "title": "Remediations Over Time",
+      "id": 4,
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "increase(remediator_restart_total[5m]) or vector(0)",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Per-Job Status",
+      "id": 5,
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "remediator_restart_total",
+          "refId": "E",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "__name__": true,
+              "instance": true,
+              "exported_job": true
+            },
+            "renameByName": {
+              "job": "Job Name",
+              "Value": "Restart Count"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      }
+    }
+  ]
+}
