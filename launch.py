@@ -39,7 +39,7 @@ class WelcomePage(QWizardPage):
                 <b>🚀 Kube Resilience Lab</b><br>
                 A self-contained Kubernetes resilience lab using <b>K3s</b>, provisioned via <b>Vagrant</b>,
                 preconfigured with <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, and realistic apps like
-                a Flask metrics API and a To-Do app.
+                a MicroFail App and a To-Do app.
             </p>
             <p>
                 Ideal for <i>learning, observability, chaos testing, and automation.</i>
@@ -307,7 +307,7 @@ class FinishPage(QWizardPage):
                 <li><a href="http://prometheus.kube-lab.local/targets">Prometheus</a></li>
                 <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
                 <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
-                <li><a href="http://flask.kube-lab.local">Flask App</a></li>
+                <li><a href="http://microfail.kube-lab.local">MicroFail App</a></li>
             </ul>
         """)
         links.setOpenExternalLinks(True)

@@ -79,6 +79,22 @@ cp -r /vagrant/* /home/vagrant/kube-resilience-lab
 chown -R vagrant:vagrant /home/vagrant/kube-resilience-lab
 
 # ─────────────────────────────────────────────
+if [ "$INSTALL_DEVOPS_UTILS" = "true" ]; then
+  echo "[OK] 🛠️ Building and deploying devops-utils..."
+
+  cd /home/vagrant/devops-utils
+  docker build -t vladbelo2/devops-utils:latest .
+  docker tag vladbelo2/devops-utils:latest devops-utils:latest
+
+  echo "[OK] 📦 Applying devops-utils Kubernetes manifests..."
+  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-deployment.yaml
+  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-service.yaml
+
+  echo "[INFO] 🔁 Restarting devops-utils deployment..."
+  kubectl rollout restart deployment devops-utils || true
+fi
+
+# ─────────────────────────────────────────────
 if [ "$INSTALL_K8S_DASHBOARD" = "true" ]; then
   echo "[OK] 🧪 Installing Kubernetes Dashboard..."
   sudo -u vagrant kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
@@ -152,8 +168,10 @@ if [ "$INSTALL_K8S_MONITORING" = "true" ]; then
 
   declare -A configmaps=(
     ["grafana-datasources"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/datasources/prometheus.yml"
-    ["grafana-dashboards"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/flask_dashboards.yml"
-    ["flask-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/flask_metrics.json"
+    ["microfail-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/microfail_dashboard.yml"
+    ["todo-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/todo_dashboard.yml"
+    ["remediator-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/remediator_dashboard.yml"
+    ["microfail-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/microfail_metrics.json"
     ["todo-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/todo_metrics.json"
     ["remediator-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/remediator_metrics.json"
   )
@@ -169,6 +187,14 @@ if [ "$INSTALL_K8S_MONITORING" = "true" ]; then
       echo "[INFO] Skipped missing file for ConfigMap: $name → $file"
     fi
   done
+
+  # 🔧 Special case: dashboards-provisioning (multi-file)
+  echo "[OK] 🧩 Creating dashboards-provisioning ConfigMap..."
+  kubectl create configmap dashboards-provisioning \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/microfail_dashboard.yml \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/todo_dashboard.yml \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/remediator_dashboard.yml \
+    --dry-run=client -o yaml | kubectl apply -f -
 
   echo "[OK] 📊 Creating Prometheus Alerts ConfigMap..."
   kubectl create configmap prometheus-alerts \
@@ -208,18 +234,19 @@ fi
 
 # ✅ Success
 echo "[OK] ✅ Setup complete!"
-echo "[OK] 🧪 K8s Dashboard: https://k8s-dashboard.kube-lab.local"
-echo "[OK] 🔍 Prometheus:    http://prometheus.kube-lab.local"
-echo "[OK] 📊 Grafana:       http://grafana.kube-lab.local"
-echo "[OK] 🧾 To-Do App:     http://todo.kube-lab.local"
-echo "[OK] 🐍 Flask App:     http://flask.kube-lab.local"
+echo "[OK] 🧪 K8s Dashboard:  https://k8s-dashboard.kube-lab.local"
+echo "[OK] 🔍 Prometheus:     http://prometheus.kube-lab.local"
+echo "[OK] 📊 Grafana:        http://grafana.kube-lab.local"
+echo "[OK] 🧾 To-Do App:      http://todo.kube-lab.local"
+echo "[OK] 🐍 MicroFail App:  http://microfail.kube-lab.local"
+echo "[OK] 🛠️ DevOps ToolBox: http://devops.kube-lab.local/"
 echo "[OK] 🔑 K8s Dashboard Token:"
 echo ""
 echo "$STATIC_TOKEN"
 echo ""
 echo "📎 For macOS/Linux add the below 👇 to > /etc/hosts"
 echo "📎 For Windows add the below 👇 to > C:\Windows\System32\drivers\etc\hosts"
-echo "$IP_ADDRESS k8s-dashboard.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local todo.kube-lab.local flask.kube-lab.local"
+echo "$IP_ADDRESS k8s-dashboard.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local todo.kube-lab.local microfail.kube-lab.local"
 echo ""
 echo "To stop the cronjob for failure-simulator run the following inside the VM :"
 echo "kubectl patch cronjob failure-simulator -p '{"spec" : {"suspend" : true }}'"

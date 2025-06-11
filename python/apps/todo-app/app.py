@@ -1,35 +1,61 @@
 from flask import Flask, render_template, request, redirect, url_for
-from prometheus_client import Counter, generate_latest
+from prometheus_client import Counter, Gauge, generate_latest
 import sqlite3
 import os
 
 app = Flask(__name__)
 DB_PATH = "todo.db"
 
-# Metrics
-TASKS_ADDED = Counter('todo_tasks_added_total', 'Total tasks added')
-TASKS_COMPLETED = Counter('todo_tasks_completed_total', 'Total tasks completed')
+# Prometheus metrics
+TASKS_TOTAL = Gauge('todo_tasks_total', 'Total number of tasks')
+TASKS_ACTIVE = Gauge('todo_tasks_active', 'Active (incomplete) tasks')
+TASKS_COMPLETED = Gauge('todo_tasks_completed', 'Completed tasks')
 TASKS_DELETED = Counter('todo_tasks_deleted_total', 'Total tasks deleted')
 
 # DB Init
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS tasks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    content TEXT NOT NULL,
-                    completed BOOLEAN NOT NULL DEFAULT 0)''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            content TEXT NOT NULL,
+            completed BOOLEAN NOT NULL DEFAULT 0
+        )
+    ''')
     conn.commit()
+    conn.close()
+
+def update_metrics():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT COUNT(*) FROM tasks')
+    TASKS_TOTAL.set(c.fetchone()[0])
+    c.execute('SELECT COUNT(*) FROM tasks WHERE completed = 0')
+    TASKS_ACTIVE.set(c.fetchone()[0])
+    c.execute('SELECT COUNT(*) FROM tasks WHERE completed = 1')
+    TASKS_COMPLETED.set(c.fetchone()[0])
     conn.close()
 
 @app.route('/')
 def index():
+    filter_by = request.args.get('filter', 'all')
+
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('SELECT id, content, completed FROM tasks')
+
+    if filter_by == 'active':
+        c.execute('SELECT * FROM tasks WHERE completed = 0')
+    elif filter_by == 'completed':
+        c.execute('SELECT * FROM tasks WHERE completed = 1')
+    else:
+        c.execute('SELECT * FROM tasks')
+
     tasks = c.fetchall()
     conn.close()
-    return render_template('index.html', tasks=tasks)
+
+    update_metrics()
+    return render_template('index.html', tasks=tasks, current_filter=filter_by)
 
 @app.route('/add', methods=['POST'])
 def add():
@@ -40,7 +66,6 @@ def add():
         c.execute('INSERT INTO tasks (content, completed) VALUES (?, 0)', (content,))
         conn.commit()
         conn.close()
-        TASKS_ADDED.inc()
     return redirect(url_for('index'))
 
 @app.route('/complete/<int:id>')
@@ -50,7 +75,6 @@ def complete(id):
     c.execute('UPDATE tasks SET completed = 1 WHERE id = ?', (id,))
     conn.commit()
     conn.close()
-    TASKS_COMPLETED.inc()
     return redirect(url_for('index'))
 
 @app.route('/delete/<int:id>')

@@ -3,7 +3,7 @@ import os
 import platform
 import sys
 
-HOSTS_LINE_TEMPLATE = "{ip} flask.kube-lab.local grafana.kube-lab.local prometheus.kube-lab.local k8s-dashboard.kube-lab.local todo.kube-lab.local\n"
+HOSTS_LINE_TEMPLATE = "{ip} microfail.kube-lab.local grafana.kube-lab.local prometheus.kube-lab.local k8s-dashboard.kube-lab.local todo.kube-lab.local\n"
 
 def get_hosts_file():
     if platform.system() == "Windows":
