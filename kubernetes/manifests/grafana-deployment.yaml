@@ -20,10 +20,10 @@ spec:
         volumeMounts:
           - name: grafana-datasources
             mountPath: /etc/grafana/provisioning/datasources
-          - name: grafana-dashboards
+          - name: dashboards-provisioning
             mountPath: /etc/grafana/provisioning/dashboards
-          - name: grafana-dashboards-json
-            mountPath: /var/lib/grafana/dashboards
+          - name: microfail-dashboard-json
+            mountPath: /var/lib/grafana/dashboards/microfail
           - name: todo-dashboard-json
             mountPath: /var/lib/grafana/dashboards/todo
           - name: remediator-dashboard-json
@@ -32,12 +32,12 @@ spec:
         - name: grafana-datasources
           configMap:
             name: grafana-datasources
-        - name: grafana-dashboards
+        - name: dashboards-provisioning
           configMap:
-            name: grafana-dashboards
-        - name: grafana-dashboards-json
+            name: dashboards-provisioning
+        - name: microfail-dashboard-json
           configMap:
-            name: flask-dashboard-json
+            name: microfail-dashboard-json
         - name: todo-dashboard-json
           configMap:
             name: todo-dashboard-json

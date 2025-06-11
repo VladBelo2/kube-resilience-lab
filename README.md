@@ -1,6 +1,6 @@
 # 🚀 Kube Resilience Lab
 
-A self-contained Kubernetes resilience lab using K3s, provisioned via Vagrant, with Prometheus, Grafana, Ingress, and real-world apps. Fully automated with a GUI wizard (launch.py), focused on simulating and observing failures.
+A self-contained Kubernetes resilience lab using K3s, provisioned via Vagrant, with Prometheus, Grafana, Ingress, and real-world apps. Fully automated with a cross-platform GUI wizard (launch.py) focused on simulating, observing, and auto-healing pod failures.
 
 
 Designed for:
@@ -15,13 +15,26 @@ Designed for:
 ## 🌟 Features
 
 - ✅ One-click cross-platform installer (macOS/Linux/Windows)
-- ⚙️ K3s Kubernetes cluster with monitoring stack
+- ⚙️ K3s Kubernetes cluster with live monitoring
 - 📊 Prometheus & Grafana dashboards auto-configured
+- 🔄 Chaos simulator cronjob to simulate pod crashes
+- 🔁 Remediator auto-heals broken deployments
+- 🧪 Grafana dashboards with custom metrics
 - 📦 Two Flask apps: 
   - `/metrics` generator
   - To-Do CRUD app with Prometheus integration
 - 🌐 Ingress routing with custom `.kube-lab.local` domains
-- 🔁 Self-healing pod behavior simulations
+- 🛠️ Real-time pod health checks during install
+
+---
+
+## 📦 Current Apps
+
+| App Name      | Description                              | URL                              |
+|---------------|------------------------------------------|----------------------------------|
+| MicroFail App | Basic `/metrics` endpoint                | http://microfail.kube-lab.local  |
+| To-Do App     | CRUD + Prometheus metrics                | http://todo.kube-lab.local       |
+| Remediator    | Self-healing controller using Prometheus | internal                         |
 
 ---
 
@@ -61,22 +74,41 @@ python3 launch.py
 
 - Supports GUI wizard (PyQt5) with embedded terminal
 
-### 3. Update Hosts File
-Add this to /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows):
+### 3. Add Local DNS Mappings
+Edit your /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts:
 
 The IP you input from the Wizard 
 ```markdown
-(e.g. 192.168.56.120) flask.kube-lab.local todo.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local k8s-dashboard.kube-lab.local
+192.168.56.120  k8s-dashboard.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local microfail.kube-lab.local todo.kube-lab.local
+
 ```
 
-### Extra Tip:
-By default, there is an active Cronjob for failure-simulate to randomally delete pod and recreate it immediately.
-To stop the cronjob for failure-simulator run the following inside the VM:
-```bash
-kubectl patch cronjob failure-simulator -p '{"spec" : {"suspend" : true }}
+## 🧪 Chaos Simulator
+
+By default, a CronJob deletes one random pod every few minutes to simulate failure.
+To pause this chaos:
+``` bash
+kubectl patch cronjob failure-simulator -p '{"spec": {"suspend": true}}'
 ```
 
-Or you can set the env.conf variable ENABLE_CHAOS_SIMULATOR=false and run the provision.sh again.
+Or set in env.conf:
+``` bash
+ENABLE_CHAOS_SIMULATOR=false
+
+```
+
+---
+
+## 🧠 Pod Health Verification
+During provisioning, the wizard:
+
+- Waits up to 3 minutes for all pods to be Running
+
+- Re-checks every 10s
+
+- Displays ✅/⚠️ icons with status
+
+- Helps detect stuck or failed containers right away
 
 ---
 
@@ -84,25 +116,23 @@ Or you can set the env.conf variable ENABLE_CHAOS_SIMULATOR=false and run the pr
 
 Access the Lab:
 
-| Service       | URL                                      |
-| ------------- | ---------------------------------------- |
-| K8s Dashboard | https://k8s-dashboard.kube-lab.local     |
-| Prometheus    | http://prometheus.kube-lab.local         |
-| Grafana       | http://grafana.kube-lab.local            |
-| Flask App     | http://flask.kube-lab.local              |
-| To-Do App     | http://todo.kube-lab.local               |
+| Service        | URL                                      |
+| -------------- | ---------------------------------------- |
+| K8s Dashboard  | https://k8s-dashboard.kube-lab.local     |
+| Prometheus     | http://prometheus.kube-lab.local         |
+| Grafana        | http://grafana.kube-lab.local            |
+| MicroFail App  | http://microfail.kube-lab.local          |
+| To-Do App      | http://todo.kube-lab.local               |
 
 ---
 
-## 🔑 Accessing Kubernetes Dashboard
+## 🔐 Dashboard Access Token
 
-Run this command inside the VM to get your login token:
+After setup, use the wizard's "📂 View Token" or run manually:
 
 ```bash
 kubectl -n kubernetes-dashboard get secret static-admin-user-token -o jsonpath="{.data.token}" | base64 --decode
 ```
-
-📝 Or use the installer wizard and click 📂 View Token after setup.
 
 ---
 
@@ -122,35 +152,41 @@ kube-resilience-lab/
 ├── grafana/
 │   ├── dashboards/
 │   └── provisioning/
-│       ├── dashboards/
-│       └── datasources/
 ├── kubernetes/
 │   ├── ingress/
-│   ├── k8s-dashboard/
-│   └── manifests/
+│   ├── manifests/
+│   └── k8s-dashboard/
 ├── prometheus/
+│   └── prometheus.yml
 ├── python/
-│   ├── flask-metrics-app/
-│   └── flask-todo-app/
-├── .gitignore
+
+│   └── apps/
+│       ├── todo-app/
+│       ├── microfail-app/
+│       └── remediator/
 ├── env.conf
+├── launch.py
 ├── Vagrantfile
 ├── provision.sh
-├── launch.py
 └── README.md
 ```
 ---
 
-## Optional CI + Next Features
+## 🚧 Roadmap / Next Features
 
-```markdown
- 🧪 Coming Soon
+🧱 Third App: Add a real DevOps-oriented Flask microservice
 
-- 🔁 Chaos Toolkit Integration
-- 📦 More Flask services (auth, DB integration)
-- 📊 Push metrics to InfluxDB
-- 🔄 GitHub Actions CI for `vagrant up` validation
-```
+💥 Inject HTTP 500, CPU, memory, disk pressure
+
+🔄 Extend remediator.py to detect new failure types
+
+📈 Add more Grafana panels and alerts
+
+🔔 Alertmanager Slack/Discord webhook integration
+
+🤖 GitHub Actions to validate provisioning
+
+🧹 Auto cleanup, reset, and snapshot commands
 
 <!-- ## 📄 License
 
@@ -160,10 +196,8 @@ MIT License
 
 ## 👨‍💻 Author
 
-Built by **Vlad Belo** with 🤖 AI-powered assistance
+Built by **Vlad Belo** with ❤️ and 🤖 AI-powered wizardry.
 
 ---
 
 > Found it useful? ⭐ Star the repo and share with fellow DevOps learners!
-
-test PR

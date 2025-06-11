@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🔧 DevOps Toolbox</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light p-4">
+  <div class="container">
+    <h1 class="mb-4">🔧 DevOps Toolbox</h1>
+
+    <!-- Ping -->
+    <form method="get" action="/ping" class="mb-3">
+      <label>🌐 Ping:</label>
+      <input class="form-control" name="ping_host" placeholder="e.g. 8.8.8.8" required>
+      <button class="btn btn-primary mt-2">Ping</button>
+    </form>
+
+    <!-- Traceroute -->
+    <form method="get" action="/traceroute" class="mb-3">
+      <label>🧭 Traceroute:</label>
+      <input class="form-control" name="traceroute_host" placeholder="e.g. google.com" required>
+      <button class="btn btn-primary mt-2">Traceroute</button>
+    </form>
+
+    <!-- DNS Lookup -->
+    <form method="get" action="/dns" class="mb-3">
+      <label>🔍 DNS Lookup:</label>
+      <input class="form-control" name="dns_host" placeholder="e.g. example.com" required>
+      <button class="btn btn-primary mt-2">DNS Lookup</button>
+    </form>
+
+    <!-- Check Package -->
+    <form method="get" action="/package" class="mb-3">
+      <label>📦 Check Package:</label>
+      <input class="form-control" name="name" placeholder="e.g. curl, ping, bash" required>
+      <button class="btn btn-primary mt-2">Check Package</button>
+    </form>
+
+    <!-- Crash & Memory -->
+    <div class="my-4">
+      <a href="/crash" class="btn btn-danger">💥 Simulate Crash (500)</a>
+      <a href="/memory" class="btn btn-warning">🧠 Simulate Memory Spike</a>
+    </div>
+
+    <!-- Output -->
+    {% if result %}
+      <div class="card border-dark">
+        <div class="card-header bg-dark text-white">🧪 Result</div>
+        <div class="card-body">
+          {{ result | safe }}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

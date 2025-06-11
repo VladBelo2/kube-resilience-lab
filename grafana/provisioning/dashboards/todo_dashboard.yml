@@ -1,9 +1,9 @@
 apiVersion: 1
 providers:
-  - name: 'Remediator'
+  - name: 'ToDoDashboard'
     folder: ''
     type: file
     disableDeletion: false
     editable: true
     options:
-      path: /var/lib/grafana/dashboards/remediator
+      path: /var/lib/grafana/dashboards/todo

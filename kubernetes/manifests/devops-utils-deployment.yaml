@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-utils
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-utils
+  template:
+    metadata:
+      labels:
+        app: devops-utils
+    spec:
+      containers:
+      - name: devops-utils
+        image: vladbelo2/devops-utils:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5050
