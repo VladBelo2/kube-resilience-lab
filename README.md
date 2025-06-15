@@ -1,5 +1,7 @@
 # 🚀 Kube Resilience Lab
 
+## Descriptions
+
 Kube Resilience Lab is a fully automated, cross-platform Kubernetes simulation environment designed for learning, resilience testing, and self-healing practice. 
 It uses K3s, Prometheus, Grafana, Ingress, Helm, and real apps to simulate failures, auto-detect them, and heal itself — all observable via dashboards and metrics.
 
@@ -10,6 +12,7 @@ Designed for:
 - **Site Reliability Engineers (SRE)**
 - **DevOps engineers**
 - **Kubernetes learners**
+
 to simulate, observe, and automatically remediate production-like failures — all observable through clean dashboards and metrics.
 
 ---
@@ -212,9 +215,9 @@ Grafana auto-loads dashboards via ConfigMap
 
 > Add these to a `screenshots/` folder and update URLs once uploaded to GitHub.
 
-| Wizard Setup | Ingress Routing |
-| ------------ | ----------------|
-| ![](screenshots/wizard.png) | ![](screenshots/urls.png) |
+| Wizard Setup | DevOps Toolbox App | Todo-App |
+| ------------ | ---------------- | ---------------- |
+| ![](screenshots/Wizard-UI.png)  | ![](screenshots/DevOps-ToolBox.png) | ![](screenshots/Todo-App.png) |
 
 ---
 
