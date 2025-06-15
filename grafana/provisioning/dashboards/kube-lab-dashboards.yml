@@ -1,0 +1,9 @@
+apiVersion: 1
+providers:
+  - name: 'kube-lab'
+    folder: 'Kube Lab Dashboards'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards/kube-lab

@@ -9,7 +9,7 @@ import os
 try:
     from PyQt5.QtWidgets import (
         QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QVBoxLayout,
-        QTextEdit, QPushButton, QMessageBox, QHBoxLayout
+        QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QComboBox
     )
     from PyQt5.QtCore import Qt, QProcess, QTimer
 except ImportError:
@@ -136,6 +136,66 @@ class IPInputPage(QWizardPage):
 
         except Exception as e:
             self.warning.setText(f"Failed to update Vagrantfile or env.conf: {str(e)}")
+            return False
+
+
+class VMResourcesPage(QWizardPage):
+    def __init__(self):
+        super().__init__()
+        self.setTitle("Configure VM Resources")
+        self.setSubTitle("Choose the amount of CPU and Memory to allocate to the lab VM.")
+
+        layout = QVBoxLayout()
+
+        # Memory selection
+        layout.addWidget(QLabel("🧠 Memory (MB):"))
+        self.memory_combo = QComboBox()
+        for label, val in [
+            ("512 MB", 512), ("1 GB", 1024), ("2 GB", 2048), ("4 GB", 4096),
+            ("6 GB", 6144), ("8 GB", 8192), ("12 GB", 12288), ("16 GB", 16384)
+        ]:
+            self.memory_combo.addItem(label, val)
+        self.memory_combo.setCurrentText("8 GB")
+        layout.addWidget(self.memory_combo)
+
+        # CPU selection
+        layout.addWidget(QLabel("🧮 CPU Cores:"))
+        self.cpu_combo = QComboBox()
+        for i in [1, 2, 4, 6, 8]:
+            self.cpu_combo.addItem(f"{i} CPU", i)
+        self.cpu_combo.setCurrentText("4 CPU")
+        layout.addWidget(self.cpu_combo)
+
+        self.setLayout(layout)
+
+    def validatePage(self):
+        # Save selected values to env.conf and patch Vagrantfile
+        memory = self.memory_combo.currentData()
+        cpus = self.cpu_combo.currentData()
+
+        try:
+            # Update env.conf
+            with open("env.conf", "a") as f:
+                f.write(f"VM_MEMORY={memory}\n")
+                f.write(f"VM_CPUS={cpus}\n")
+
+            # Update Vagrantfile
+            with open("Vagrantfile", "r") as f:
+                lines = f.readlines()
+            with open("Vagrantfile", "w") as f:
+                for line in lines:
+                    if "vb.memory" in line:
+                        f.write(f'    vb.memory = {memory}\n')
+                    elif "vb.cpus" in line:
+                        f.write(f'    vb.cpus = {cpus}\n')
+                    else:
+                        f.write(line)
+
+            print(f"\033[32m✅ Updated Vagrantfile with {memory}MB RAM and {cpus} CPUs\033[0m")
+            return True
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to update Vagrantfile: {e}")
             return False
 
 
@@ -309,6 +369,7 @@ class FinishPage(QWizardPage):
                 <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
                 <li><a href="http://prometheus.kube-lab.local/targets">Prometheus</a></li>
                 <li><a href="http://grafana.kube-lab.local">Grafana</a></li>
+                <li><a href="http://devops.kube-lab.local">DevOps Utils App</a></li> 
                 <li><a href="http://todo.kube-lab.local">To-Do App</a></li>
                 <li><a href="http://microfail.kube-lab.local">MicroFail App</a></li>
             </ul>
@@ -365,6 +426,7 @@ class KubeWizard(QWizard):
 
         self.addPage(WelcomePage())
         self.addPage(IPInputPage())
+        self.addPage(VMResourcesPage())
         self.addPage(ProgressPage())
         self.addPage(FinishPage())
         self.resize(640, 480)
@@ -374,8 +436,11 @@ def main():
     wizard = KubeWizard()
 
     # Connect Finish click to token cleanup
-    finish_page = wizard.page(3)  # Index of FinishPage
-    wizard.finished.connect(finish_page.cleanup_token)
+    for i in range(wizard.pageIds().__len__()):
+        page = wizard.page(i)
+        if isinstance(page, FinishPage):
+            wizard.finished.connect(page.cleanup_token)
+            break
 
     wizard.show()
     sys.exit(app.exec_())

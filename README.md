@@ -2,8 +2,12 @@
 
 ## Descriptions
 
-A fully-automated Kubernetes resilience playground using **K3s**, **Helm**, **Prometheus**, **Grafana**, **NGINX Ingress**, and real Flask-based apps — provisioned via **Vagrant** and managed with a **cross-platform GUI wizard**.
+A fully automated, cross-platform Kubernetes resilience lab using **K3s**, provisioned via **Vagrant**, with **Helm**, **Prometheus**, **Grafana**, **NGINX Ingress**, and real-world microservices.  
+Simulate failures, auto-detect and remediate them, and monitor the entire system with beautiful dashboards — all via a **single cross-platform installer**.
 
+---
+
+## 🎯 Purpose
 
 Designed for:
 - **Site Reliability Engineers (SRE)**
@@ -14,19 +18,19 @@ to simulate, observe, and automatically remediate production-like failures — a
 
 ---
 
-## 🧠 What It Does
+## 🌟 Features
 
-Kube Resilience Lab lets you:
-
-| Capability                         | Description                                                                 |
-|------------------------------------|-----------------------------------------------------------------------------|
-| ✅ **Simulate Failures**           | Random pod kills, CPU load, disk fill, HTTP 500s, and more via cronjob.     |
-| ✅ **Observe Everything**          | Prometheus + Grafana with auto-provisioned dashboards and custom metrics.   |
-| ✅ **Auto-Remediate**              | A Python-based controller restarts broken deployments based on metrics.     |
-| ✅ **One-Click Provisioning**      | Wizard-style `launch.py` sets everything up — from VM to dashboards.        |
-| ✅ **Ingress with Custom Domains** | Use local DNS mapping for clean `.kube-lab.local` access.                   |
-| ✅ **Real Flask Apps**             | Includes To-Do app, DevOps Toolbox app, and crashable MicroFail app.        |
-| ✅ **Hands-On DevOps Tools**       | Toolbox app with ping, traceroute, dig, package checks, and crash triggers. |
+| Feature                        | Description                                                                 |
+|--------------------------------|-----------------------------------------------------------------------------|
+| ✅ GUI Installer               | Cross-platform PyQt5 wizard automates everything (IP, Vagrantfile, setup)   |
+| ⚙️ K3s Cluster                 | Lightweight K8s using [K3s](https://k3s.io)                                 |
+| 🧠 Pod Health Checks           | Real-time post-provisioning readiness validation                            |
+| 📊 Prometheus + Grafana        | Installed via Helm with dashboards provisioned from repo                    |
+| 🛠️ DevOps Toolbox              | Web-based ping, traceroute, DNS, and package checks                         |
+| 🔁 Remediator Controller       | Auto-restarts failed pods using Prometheus as a trigger                     |
+| 💣 Failure Simulator           | CronJob deletes a random pod every 2 minutes                                |
+| 🌐 Ingress Routing             | Custom `.kube-lab.local` domains with clean access                          |
+| 📦 Real Apps                   | Flask-based To-Do App, MicroFail App (CPU/Disk/Fail tests), Remediator      |
 
 ---
 
@@ -41,6 +45,22 @@ Kube Resilience Lab lets you:
 
 ---
 
+## 🖼️ Architecture Overview
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│                             Kube Resilience Lab                          │
+├────────────┬─────────────────────────────────────────────────────────────┤
+│ Vagrant VM │  Ubuntu 22.04 + K3s                                         │
+│            ├──────────────┬─────────────────────────────────────────────┤
+│            │ Helm         │ Prometheus, Grafana, Ingress Controller      │
+│            │ Python Apps  │ To-Do App, MicroFail, Remediator, DevOps UI │
+│            │ CronJob      │ Failure Simulator                            │
+└────────────┴──────────────┴─────────────────────────────────────────────┘
+```
+
+---
+
 ## 📋 Requirements
 
 - [Vagrant](https://www.vagrantup.com/) (>= 2.2)
@@ -50,6 +70,7 @@ Kube Resilience Lab lets you:
   - ✅ macOS
   - ✅ Linux (Ubuntu/Debian/Fedora)
   - ✅ Windows 10+ (PyQt5 GUI supported)
+- PyQt5 ⭕️ Auto	Automatically installed if missing
 
 ---
 
@@ -142,15 +163,14 @@ kubectl -n kubernetes-dashboard get secret static-admin-user-token -o jsonpath="
 
 ## 📊 Grafana Dashboards
 
-Auto-provisioned dashboards show:
+All dashboards are pre-loaded using ConfigMap + Helm provisioning.
 
-- 📈 MicroFail: crashes, CPU/mem usage, pod restarts
-
-- 🧪 Remediator: total checks, restarts, failure rates
-
-- 📝 To-Do App: tasks created, completed, deleted
-
-- 🧠 Node/Pod Health (via kube-prometheus-stack)
+| Dashboard	         | Panels Included   |
+| ------------------ | ----------------- |
+| 📈 MicroFail App   | Crash count, CPU usage, memory, restarts |
+| 📝 To-Do App	     | Task count (active, total, deleted) |
+| 🧪 Remediator	     | Prometheus checks, restarts, failures, per-job stats |
+| 🧠 K8s Node Health | Default via kube-prometheus-stack |
 
 Dashboards live under: “Kube Lab Dashboards” folder in Grafana.
 
@@ -171,15 +191,26 @@ During provisioning, the wizard:
 ## 📁 Folder Structure
 ```text
 kube-resilience-lab/
-├── grafana/              # Dashboards & provisioning
-├── kubernetes/           # Manifests, Ingress, Helm values
-├── monitoring/           # ServiceMonitors, ConfigMaps
-├── python/apps/          # Flask apps (todo, microfail, remediator, utils)
-├── launch.py             # Cross-platform GUI installer
-├── provision.sh          # Vagrant provisioning script
-├── Vagrantfile           # VM spec
-├── env.conf              # Toggle installs/features
-├── screenshots/          # UI screenshots
+├── grafana/
+│   ├── dashboards/
+│   └── provisioning/
+├── kubernetes/
+│   ├── helm/
+│   ├── ingress/
+│   ├── manifests/
+│   ├── monitoring/
+│   └── k8s-dashboard/
+├── python/
+│   └── apps/
+│       ├── microfail-app/
+│       ├── todo-app/
+│       ├── remediator/
+│       └── devops-utils/
+├── screenshots/
+├── env.conf
+├── launch.py
+├── Vagrantfile
+├── provision.sh
 └── README.md
 ```
 
@@ -210,11 +241,13 @@ Grafana auto-loads dashboards via ConfigMap
 
 ## 📸 Screenshots
 
-> Add these to a `screenshots/` folder and update URLs once uploaded to GitHub.
+| Wizard Setup | Ingress Routing | K8s Dashboard |
+|--------------|-----------------|----------------|
+| ![Wizard](screenshots/wizard.png) | ![Ingress](screenshots/ingress.png) | ![Pods](screenshots/dashboard-pods.png) |
 
-| Wizard Setup | DevOps Toolbox App | Todo-App |
-| ------------ | ---------------- | ---------------- |
-| ![](screenshots/Wizard-UI.png)  | ![](screenshots/DevOps-ToolBox.png) | ![](screenshots/Todo-App.png) |
+| Grafana Dashboard | DevOps Toolbox | To-Do App |
+|-------------------|----------------|-----------|
+| ![Grafana](screenshots/grafana-dashboard.png) | ![DevOps](screenshots/DevOps-ToolBox.png) | ![Todo](screenshots/Todo-App.png) |
 
 ---
 
