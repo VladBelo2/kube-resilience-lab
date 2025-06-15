@@ -314,31 +314,44 @@ class ProgressPage(QWizardPage):
         self.log_output.clear()
         self.log_output.append('<span style="color:green;">🚀 Starting provisioning script...\n</span>')
 
-        # Use QTimer to defer execution until after page is fully shown
+        wizard = self.wizard()
+
+        # 🛑 Disable navigation
+        wizard.button(QWizard.BackButton).setEnabled(False)
+        wizard.button(QWizard.NextButton).setEnabled(False)
+
+        # ✅ Ensure Cancel stays enabled
+        wizard.button(QWizard.CancelButton).setEnabled(True)
+
+        # Start provisioning after UI is ready
         QTimer.singleShot(0, self.setup_and_start_provision)
 
     def setup_and_start_provision(self):
-        wizard = self.wizard()
+        # wizard = self.wizard()
 
-        # Disable < Back and Next > buttons
-        wizard.setButtonLayout([
-            QWizard.Stretch,
-            QWizard.CustomButton1,
-            QWizard.BackButton,
-            QWizard.NextButton
-        ])
-        wizard.button(QWizard.NextButton).setEnabled(False)
-        wizard.button(QWizard.BackButton).setEnabled(False)
+        # # Disable < Back and Next > buttons
+        # wizard.setButtonLayout([
+        #     QWizard.Stretch,
+        #     QWizard.CustomButton1,
+        #     QWizard.BackButton,
+        #     QWizard.NextButton
+        # ])
+        # wizard.button(QWizard.NextButton).setEnabled(False)
+        # wizard.button(QWizard.BackButton).setEnabled(False)
 
-        # Add Cancel button
-        wizard.setOption(QWizard.HaveCustomButton1, True)
-        wizard.setButtonText(QWizard.CustomButton1, "Cancel")
-        wizard.button(QWizard.CustomButton1).clicked.connect(self.cancel_setup)
+        # # Add Cancel button
+        # wizard.setOption(QWizard.HaveCustomButton1, True)
+        # wizard.setButtonText(QWizard.CustomButton1, "Cancel")
+        # wizard.button(QWizard.CustomButton1).clicked.connect(self.cancel_setup)
 
         # Start provisioning process
         project_root = os.path.dirname(os.path.abspath(__file__))
         self.process.setWorkingDirectory(project_root)
         self.process.start("vagrant", ["up"])
+
+        wizard = self.wizard()
+        wizard.button(QWizard.BackButton).setEnabled(False)
+        wizard.button(QWizard.NextButton).setEnabled(False)
 
     def handle_output(self):
         data = self.process.readAllStandardOutput().data().decode()
@@ -435,9 +448,14 @@ class ProgressPage(QWizardPage):
             self.log_output.append(f'<span style="color:red;">❌ Pod health check error: {e}</span>')
             QApplication.processEvents()
 
-        # Enable navigation
-        wizard.button(QWizard.NextButton).setEnabled(True)
+        # Enable Back always
         wizard.button(QWizard.BackButton).setEnabled(True)
+
+        # ✅ Only enable Next if provisioning succeeded
+        if self.process.exitCode() == 0:
+            wizard.button(QWizard.NextButton).setEnabled(True)
+        else:
+            wizard.button(QWizard.NextButton).setEnabled(False)
 
         # Remove Cancel button
         wizard.setOption(QWizard.HaveCustomButton1, False)
@@ -520,9 +538,9 @@ class KubeWizard(QWizard):
         self.setWizardStyle(QWizard.ModernStyle)
 
         self.setButtonLayout([
-            QWizard.Stretch,
             QWizard.BackButton,
             QWizard.NextButton,
+            QWizard.Stretch,
             QWizard.CancelButton
         ])
 
