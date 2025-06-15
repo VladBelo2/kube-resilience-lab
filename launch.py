@@ -56,6 +56,7 @@ class WelcomePage(QWizardPage):
     def initializePage(self):
         wizard = self.wizard()
         wizard.setButtonLayout([
+            QWizard.Stretch,
             QWizard.BackButton,
             QWizard.NextButton,
             QWizard.CancelButton,
@@ -517,6 +518,13 @@ class KubeWizard(QWizard):
         super().__init__()
         self.setWindowTitle("Kube Resilience Lab Setup")
         self.setWizardStyle(QWizard.ModernStyle)
+
+        self.setButtonLayout([
+            QWizard.Stretch,
+            QWizard.BackButton,
+            QWizard.NextButton,
+            QWizard.CancelButton
+        ])
 
         self.addPage(WelcomePage())
         self.addPage(IPInputPage())
