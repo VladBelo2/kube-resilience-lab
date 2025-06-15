@@ -29,11 +29,11 @@ echo "[OK] 🔐 Creating a sudo user with SSH access..."
 USERNAME="labuser"
 PASSWORD="labuser123"
 if ! id "$USERNAME" >/dev/null 2>&1; then
-  echo "[OK] 👤 Creating user '$USERNAME'..."
-  adduser --disabled-password --gecos "" "$USERNAME"
-  echo "$USERNAME:$PASSWORD" | chpasswd
-  usermod -aG sudo,docker "$USERNAME"
-  echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME
+    echo "[OK] 👤 Creating user '$USERNAME'..."
+    adduser --disabled-password --gecos "" "$USERNAME"
+    echo "$USERNAME:$PASSWORD" | chpasswd
+    usermod -aG sudo,docker "$USERNAME"
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME
 fi
 
 # 🔧 Fix any cloud-init configs that override PasswordAuthentication
@@ -58,19 +58,17 @@ fi
 
 # ─────────────────────────────────────────────
 if [ "$INSTALL_KUBERNETES" = "true" ]; then
-  echo "[OK] ⚙️ Installing K3s..."
+  echo "[OK] ⚙️  Installing K3s..."
+  # Install K3s with readable kubeconfig
   curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
 
-  echo "[INFO] ⏳ Waiting for /etc/rancher/k3s/k3s.yaml to exist..."
-  until [ -f /etc/rancher/k3s/k3s.yaml ]; do
-    sleep 2
-  done
-
+  # Set up kubeconfig for the vagrant user
   mkdir -p /home/vagrant/.kube
   cp /etc/rancher/k3s/k3s.yaml /home/vagrant/.kube/config
   chown vagrant:vagrant /home/vagrant/.kube/config
   chmod 600 /home/vagrant/.kube/config
 
+  # Automatically set KUBECONFIG for future sessions
   echo 'export KUBECONFIG=$HOME/.kube/config' >> /home/vagrant/.bashrc
 fi
 
@@ -81,50 +79,42 @@ cp -r /vagrant/* /home/vagrant/kube-resilience-lab
 chown -R vagrant:vagrant /home/vagrant/kube-resilience-lab
 
 # ─────────────────────────────────────────────
-# echo "[OK] 🚀 Deploying core apps (microfail, todo, remediator)..."
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/microfail-app-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/microfail-app-service.yaml
+if [ "$INSTALL_DEVOPS_UTILS" = "true" ]; then
+  echo "[OK] 🛠️ Building and deploying devops-utils..."
 
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/todo-app-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/todo-app-service.yaml
+  cd /home/vagrant/devops-utils
+  docker build -t vladbelo2/devops-utils:latest .
+  docker tag vladbelo2/devops-utils:latest devops-utils:latest
 
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/remediator-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/remediator-service.yaml
+  echo "[OK] 📦 Applying devops-utils Kubernetes manifests..."
+  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-deployment.yaml
+  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-service.yaml
 
-# if [ "$INSTALL_DEVOPS_UTILS" = "true" ]; then
-#   echo "[OK] 🛠️ Building and deploying devops-utils..."
-#   cd /home/vagrant/devops-utils
-#   docker build -t vladbelo2/devops-utils:latest .
-#   docker tag vladbelo2/devops-utils:latest devops-utils:latest
-
-#   echo "[OK] 📦 Applying devops-utils manifests..."
-#   kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-deployment.yaml
-#   kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-service.yaml
-#   echo "[INFO] 🔁 Restarting devops-utils deployment..."
-#   kubectl rollout restart deployment devops-utils || true
-# fi
-if [ "$INSTALL_CORE_APPS" = "true" ]; then
-  echo "[OK] 🚀 Deploying core apps..."
-
-  for file in /home/vagrant/kube-resilience-lab/kubernetes/manifests/*-{deployment,service}.yaml; do
-    echo "[INFO] 📦 Applying $file"
-    kubectl apply -f "$file"
-  done
+  echo "[INFO] 🔁 Restarting devops-utils deployment..."
+  kubectl rollout restart deployment devops-utils || true
 fi
 
 # ─────────────────────────────────────────────
 if [ "$INSTALL_K8S_DASHBOARD" = "true" ]; then
-  echo "[OK] 🧪 Installing K8s Dashboard..."
+  echo "[OK] 🧪 Installing Kubernetes Dashboard..."
   sudo -u vagrant kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+  echo "[OK] 🔒 Creating admin user..."
   sudo -u vagrant kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/k8s-dashboard/admin-user.yml
+  
+  echo "[OK] 🔐 Creating static dashboard token..."
   kubectl -n kubernetes-dashboard create sa static-admin-user --dry-run=client -o yaml | kubectl apply -f -
   kubectl create clusterrolebinding static-admin-user-binding \
     --clusterrole=cluster-admin \
     --serviceaccount=kubernetes-dashboard:static-admin-user \
     --dry-run=client -o yaml | kubectl apply -f -
+
   kubectl apply -f /vagrant/kubernetes/manifests/static-admin-user-token.yaml || true
-  echo "[INFO] ⏳ Waiting for token..."
+
+  # Wait for Kubernetes to fill in the token
+  echo "[INFO] ⏳ Waiting for token to be populated..."
   sleep 8
+
   STATIC_TOKEN=$(kubectl -n kubernetes-dashboard get secret static-admin-user-token -o jsonpath="{.data.token}" | base64 --decode)
 fi
 
@@ -132,49 +122,99 @@ fi
 if [ "$INSTALL_HELM" = "true" ]; then
   echo "[OK] 📦 Installing Helm..."
   HELM_VERSION="v3.14.4"
+
   curl -fsSL https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -o helm.tar.gz
   tar -xzf helm.tar.gz
   mv linux-amd64/helm /usr/local/bin/helm
   chmod +x /usr/local/bin/helm
   rm -rf linux-amd64 helm.tar.gz
+
   helm version
 fi
 
 # ─────────────────────────────────────────────
 if [ "$INSTALL_NGINX" = "true" ]; then
   echo "[OK] 🌐 Installing NGINX Ingress Controller..."
+
   export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
   helm repo update
   helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
-  echo "[INFO] ⏳ Waiting for Ingress service..."
-  until kubectl -n ingress-nginx get svc nginx-ingress-ingress-nginx-controller &>/dev/null; do sleep 2; done
-  echo "[INFO] ⏳ Waiting for Ingress Controller pod..."
-  kubectl wait --namespace ingress-nginx --for=condition=Ready pod \
+
+  # Wait for the service to be available
+  echo "[INFO] ⏳ Waiting for Ingress Controller service..."
+  until kubectl -n ingress-nginx get svc nginx-ingress-ingress-nginx-controller &>/dev/null; do
+    sleep 2
+  done
+
+  # Wait for the ingress controller pod to be Ready
+  echo "[INFO] ⏳ Waiting for Ingress Controller pod to be ready..."
+  kubectl wait --namespace ingress-nginx \
+    --for=condition=Ready pod \
     --selector=app.kubernetes.io/component=controller \
     --timeout=120s
-  echo "[INFO] 🌐 Patching NGINX Ingress external IP..."
-  kubectl patch svc nginx-ingress-ingress-nginx-controller -n ingress-nginx \
+
+  # Patch to expose it on external IP
+  echo "[INFO] 🌐 Patching NGINX Ingress to expose via external IP $IP_ADDRESS..."
+  kubectl patch svc nginx-ingress-ingress-nginx-controller \
+    -n ingress-nginx \
     -p "{\"spec\": {\"externalIPs\": [\"$IP_ADDRESS\"]}}"
 fi
 
 # ─────────────────────────────────────────────
 if [ "$INSTALL_K8S_MONITORING" = "true" ]; then
-  echo "[OK] 🚀 Installing kube-prometheus-stack via Helm..."
-  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-  helm repo update
-  kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-  helm install monitoring prometheus-community/kube-prometheus-stack \
-    --namespace monitoring \
-    -f /home/vagrant/kube-resilience-lab/kubernetes/helm/kube-prometheus-values.yaml
+  echo "[OK] 📦 Creating Grafana ConfigMaps..."
 
-  echo "[OK] 📡 Applying ServiceMonitors..."
-  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/monitoring/servicemonitors/
+  declare -A configmaps=(
+    ["grafana-datasources"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/datasources/prometheus.yml"
+    ["microfail-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/microfail_dashboard.yml"
+    ["todo-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/todo_dashboard.yml"
+    ["remediator-dashboard"]="/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/remediator_dashboard.yml"
+    ["microfail-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/microfail_metrics.json"
+    ["todo-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/todo_metrics.json"
+    ["remediator-dashboard-json"]="/home/vagrant/kube-resilience-lab/grafana/dashboards/remediator_metrics.json"
+  )
+
+  for name in "${!configmaps[@]}"; do
+    file="${configmaps[$name]}"
+    if [ -f "$file" ]; then
+      kubectl create configmap "$name" \
+        --from-file="$file" \
+        --dry-run=client -o yaml | kubectl apply -f -
+      echo "[OK] ✔️ Created ConfigMap: $name"
+    else
+      echo "[INFO] Skipped missing file for ConfigMap: $name → $file"
+    fi
+  done
+
+  # 🔧 Special case: dashboards-provisioning (multi-file)
+  echo "[OK] 🧩 Creating dashboards-provisioning ConfigMap..."
+  kubectl create configmap dashboards-provisioning \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/microfail_dashboard.yml \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/todo_dashboard.yml \
+    --from-file=/home/vagrant/kube-resilience-lab/grafana/provisioning/dashboards/remediator_dashboard.yml \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  echo "[OK] 📊 Creating Prometheus Alerts ConfigMap..."
+  kubectl create configmap prometheus-alerts \
+    --from-file=/home/vagrant/kube-resilience-lab/kubernetes/manifests/alerts.yml \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  echo "[OK] 📈 Deploying Prometheus & Grafana to K8s..."
+  for file in /home/vagrant/kube-resilience-lab/kubernetes/manifests/*.{yml,yaml}; do
+    [[ "$file" =~ alerts\.ya?ml$ ]] && continue  # skip alerts.yml
+    echo "[INFO] 🔹 Applying $file"
+    sudo -u vagrant kubectl apply -f "$file"
+  done
+
+  echo "[INFO] ♻️ Restarting Grafana to load dashboards..."
+  kubectl rollout restart deployment grafana
 fi
 
 # ─────────────────────────────────────────────
 if [ "$INSTALL_INGRESS_RULES" = "true" ]; then
-  echo "[OK] 🌐 Applying Ingress rules..."
+  echo "[OK] 🌐 Creating Ingress rules..."
   for file in /home/vagrant/kube-resilience-lab/kubernetes/ingress/*.yaml; do
     echo "[INFO] 🔹 Applying $file"
     sudo -u vagrant kubectl apply -f "$file"
@@ -182,15 +222,6 @@ if [ "$INSTALL_INGRESS_RULES" = "true" ]; then
 fi
 
 # ─────────────────────────────────────────────
-echo "[OK] ⚙️ Applying failure-simulator CronJob..."
-kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/failure-simulator.yaml
-
-# Wait for CronJob to exist before patching
-until kubectl get cronjob failure-simulator &>/dev/null; do
-  echo "[INFO] ⏳ Waiting for CronJob 'failure-simulator'..."
-  sleep 3
-done
-
 if [ "$ENABLE_CHAOS_SIMULATOR" = "true" ]; then
   echo "[OK] 🔁 Enabling Chaos Simulator CronJob..."
   kubectl patch cronjob failure-simulator -p '{"spec" : {"suspend" : false }}'
@@ -200,6 +231,8 @@ else
 fi
 
 # ─────────────────────────────────────────────
+
+# ✅ Success
 echo "[OK] ✅ Setup complete!"
 echo "[OK] 🧪 K8s Dashboard:  https://k8s-dashboard.kube-lab.local"
 echo "[OK] 🔍 Prometheus:     http://prometheus.kube-lab.local"
@@ -211,7 +244,25 @@ echo "[OK] 🔑 K8s Dashboard Token:"
 echo ""
 echo "$STATIC_TOKEN"
 echo ""
-echo "📎 Add to /etc/hosts (macOS/Linux) or C:\\Windows\\System32\\drivers\\etc\\hosts (Windows):"
+echo "📎 For macOS/Linux add the below 👇 to > /etc/hosts"
+echo "📎 For Windows add the below 👇 to > C:\Windows\System32\drivers\etc\hosts"
 echo "$IP_ADDRESS k8s-dashboard.kube-lab.local prometheus.kube-lab.local grafana.kube-lab.local todo.kube-lab.local microfail.kube-lab.local"
 echo ""
-echo "To disable chaos: kubectl patch cronjob failure-simulator -p '{\"spec\" : {\"suspend\" : true }}'"
+echo "To stop the cronjob for failure-simulator run the following inside the VM :"
+echo "kubectl patch cronjob failure-simulator -p '{"spec" : {"suspend" : true }}'"
+echo ""
+echo "Or you can set the env.conf variable ENABLE_CHAOS_SIMULATOR to false and run the provision.sh again."
+
+
+
+rm -f kubernetes/manifests/prometheus-deployment.yaml
+rm -f kubernetes/manifests/grafana-deployment.yaml
+rm -f kubernetes/manifests/prometheus-service.yaml
+rm -f kubernetes/manifests/grafana-service.yaml
+rm -f kubernetes/manifests/alertmanager.yaml
+rm -f kubernetes/manifests/prometheus-config.yaml
+rm -f kubernetes/ingress/ingress-prometheus.yaml
+rm -f kubernetes/ingress/ingress-grafana.yaml
+rm -f grafana/provisioning/datasources/prometheus.yml
+rm -f grafana/provisioning/dashboards/*.yml
+rm -f grafana/dashboards/*.json

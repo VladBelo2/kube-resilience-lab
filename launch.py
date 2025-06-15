@@ -36,12 +36,15 @@ class WelcomePage(QWizardPage):
         layout = QVBoxLayout()
         description = QLabel("""
             <p>
-                <b>🚀 Kube Resilience Lab</b><br>
-                A self-contained Kubernetes resilience lab using <b>K3s</b>, provisioned via <b>Vagrant</b>,
-                preconfigured with <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, and realistic apps like
-                a MicroFail App and a To-Do app.
+                <b>🚀 Kube Resilience Lab</b>
+                <br><br>
+                Kube Resilience Lab is a fully automated via <b>Vagrant</b>, 
+                cross-platform Kubernetes simulation environment designed for learning, resilience testing, and self-healing practice. 
+                It uses<b>K3s</b>, <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, <b>Helm</b>, and real apps to simulate failures, 
+                auto-detect them, and heal itself — all observable via dashboards and metrics.
             </p>
             <p>
+                <br><br>
                 Ideal for <i>learning, observability, chaos testing, and automation.</i>
             </p>
         """)

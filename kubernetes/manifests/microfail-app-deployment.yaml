@@ -18,15 +18,3 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: microfail-service
-spec:
-  selector:
-    app: microfail
-  ports:
-    - protocol: TCP
-      port: 8000
-      targetPort: 8000
