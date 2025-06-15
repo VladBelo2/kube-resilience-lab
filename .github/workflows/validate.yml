@@ -1,0 +1,50 @@
+name: 🧪 Validate Kube Resilience Lab
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-vagrant-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - name: 📥 Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: ⚙️ Install Vagrant & VirtualBox
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y virtualbox vagrant
+
+    - name: 🚀 Start Lab VM (headless)
+      run: |
+        vagrant up --no-provision
+        vagrant provision
+
+    - name: ✅ Check Pod Readiness
+      run: |
+        echo "[INFO] Waiting for pods to be healthy..."
+        vagrant ssh -c 'kubectl get pods -A --no-headers'
+        vagrant ssh -c '
+          if kubectl get pods -A | grep -v "Running\|Completed"; then
+            echo "❌ Some pods not healthy"; exit 1;
+          else
+            echo "✅ All pods healthy";
+          fi
+        '
+
+    - name: 📡 Check Prometheus Targets
+      run: |
+        vagrant ssh -c '
+          curl -s http://localhost:9090/api/v1/targets | grep "up"
+        '
+
+    - name: 🧪 Optional: Curl App URLs
+      run: |
+        vagrant ssh -c '
+          curl -s -o /dev/null -w "%{http_code}" http://microfail.kube-lab.local | grep 200
+        '

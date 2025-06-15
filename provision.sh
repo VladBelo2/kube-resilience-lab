@@ -60,6 +60,7 @@ fi
 if [ "$INSTALL_KUBERNETES" = "true" ]; then
   echo "[OK] ⚙️ Installing K3s..."
   curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+  # chmod 600 /etc/rancher/k3s/k3s.yaml
 
   echo "[INFO] ⏳ Waiting for /etc/rancher/k3s/k3s.yaml to exist..."
   until [ -f /etc/rancher/k3s/k3s.yaml ]; do
@@ -81,28 +82,6 @@ cp -r /vagrant/* /home/vagrant/kube-resilience-lab
 chown -R vagrant:vagrant /home/vagrant/kube-resilience-lab
 
 # ─────────────────────────────────────────────
-# echo "[OK] 🚀 Deploying core apps (microfail, todo, remediator)..."
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/microfail-app-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/microfail-app-service.yaml
-
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/todo-app-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/todo-app-service.yaml
-
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/remediator-deployment.yaml
-# kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/remediator-service.yaml
-
-# if [ "$INSTALL_DEVOPS_UTILS" = "true" ]; then
-#   echo "[OK] 🛠️ Building and deploying devops-utils..."
-#   cd /home/vagrant/devops-utils
-#   docker build -t vladbelo2/devops-utils:latest .
-#   docker tag vladbelo2/devops-utils:latest devops-utils:latest
-
-#   echo "[OK] 📦 Applying devops-utils manifests..."
-#   kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-deployment.yaml
-#   kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/manifests/devops-utils-service.yaml
-#   echo "[INFO] 🔁 Restarting devops-utils deployment..."
-#   kubectl rollout restart deployment devops-utils || true
-# fi
 if [ "$INSTALL_CORE_APPS" = "true" ]; then
   echo "[OK] 🚀 Deploying core apps..."
 
@@ -170,6 +149,9 @@ if [ "$INSTALL_K8S_MONITORING" = "true" ]; then
 
   echo "[OK] 📡 Applying ServiceMonitors..."
   kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/monitoring/servicemonitors/
+
+  echo "[OK] 📊 Creating Grafana dashboards ConfigMap..."
+  kubectl apply -f /home/vagrant/kube-resilience-lab/kubernetes/monitoring/kube-lab-dashboards-configmap.yaml
 fi
 
 # ─────────────────────────────────────────────

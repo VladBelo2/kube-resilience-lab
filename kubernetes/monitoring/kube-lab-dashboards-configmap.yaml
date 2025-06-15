@@ -1,0 +1,273 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-lab-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  microfail_metrics.json: |
+    {
+      "__inputs": [],
+      "__requires": [],
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "iteration": 1682345678910,
+      "panels": [
+        {
+          "type": "stat",
+          "title": "🔥 Crash Count",
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "targets": [
+            {
+              "expr": "microfail_crash_total",
+              "legendFormat": "Crashes"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "noValue": "0",
+              "color": { "mode": "thresholds" },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 1 },
+                  { "color": "red", "value": 10 }
+                ]
+              },
+              "mappings": []
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "title": "✅ Uptime (Seconds)",
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+          "targets": [
+            {
+              "expr": "time() - process_start_time_seconds{job=\"microfail\"}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "📈 CPU Usage",
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 6 },
+          "targets": [
+            {
+              "expr": "rate(container_cpu_usage_seconds_total{pod=~\"microfail.*\"}[5m])",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "🧠 Memory Usage",
+          "gridPos": { "x": 0, "y": 10, "w": 12, "h": 6 },
+          "targets": [
+            {
+              "expr": "container_memory_usage_bytes{pod=~\"microfail.*\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "🗒️ Restarts",
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "kube_pod_container_status_restarts_total{pod=~\"microfail.*\"}",
+              "legendFormat": "{{pod}}"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 36,
+      "style": "dark",
+      "tags": ["microfail", "k8s", "dashboard"],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "MicroFail Metrics",
+      "uid": null,
+      "version": 1
+    }
+  remediator_metrics.json: |
+    {
+      "title": "Remediator Metrics",
+      "schemaVersion": 30,
+      "version": 1,
+      "refresh": "10s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Total Remediations",
+          "id": 1,
+          "gridPos": { "x": 0, "y": 0, "w": 8, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(remediator_restart_total)",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            },
+            "textMode": "value",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "noValue": "0"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Failed Remediations",
+          "id": 2,
+          "gridPos": { "x": 8, "y": 0, "w": 8, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(remediator_failure_total)",
+              "refId": "B"
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            },
+            "textMode": "value",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "noValue": "0"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Total Prometheus Checks",
+          "id": 3,
+          "gridPos": { "x": 16, "y": 0, "w": 8, "h": 4 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "remediator_check_total",
+              "refId": "C"
+            }
+          ],
+          "options": {
+            "reduceOptions": {
+              "calcs": ["lastNotNull"]
+            },
+            "textMode": "value",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "noValue": "0"
+          }
+        },
+        {
+          "type": "graph",
+          "title": "Remediations Over Time",
+          "id": 4,
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "increase(remediator_restart_total[5m]) or vector(0)",
+              "refId": "D"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Per-Job Status",
+          "id": 5,
+          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "remediator_restart_total",
+              "refId": "E",
+              "format": "table"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "__name__": true,
+                  "instance": true,
+                  "exported_job": true
+                },
+                "renameByName": {
+                  "job": "Job Name",
+                  "Value": "Restart Count"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {
+            "showHeader": true
+          }
+        }
+      ]
+    }
+  todo_metrics.json: |
+    {
+      "title": "To-Do Metrics",
+      "schemaVersion": 30,
+      "version": 1,
+      "tags": ["todo", "app"],
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Total Tasks",
+          "targets": [{ "expr": "todo_tasks_total", "refId": "A" }],
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "stat",
+          "title": "Active Tasks",
+          "targets": [{ "expr": "todo_tasks_active", "refId": "B" }],
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "stat",
+          "title": "Completed Tasks",
+          "targets": [{ "expr": "todo_tasks_completed", "refId": "C" }],
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+          "datasource": "Prometheus"
+        },
+        {
+          "type": "graph",
+          "title": "Tasks Deleted Over Time",
+          "targets": [{ "expr": "rate(todo_tasks_deleted_total[1m])", "refId": "D" }],
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 6 },
+          "datasource": "Prometheus"
+        }
+      ]
+    }
+

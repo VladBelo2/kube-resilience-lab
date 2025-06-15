@@ -15,6 +15,23 @@ grafana:
       - /
     pathType: Prefix
 
+  # 🔧 Auto-provision dashboards
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'kube-lab'
+          orgId: 1
+          folder: 'Kube Lab Dashboards'
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 10
+          options:
+            path: /var/lib/grafana/dashboards/kube-lab
+
+  dashboardsConfigMaps:
+    kube-lab: "kube-lab-dashboards"
+
 prometheus:
   enabled: true
   service:
