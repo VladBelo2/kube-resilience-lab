@@ -9,7 +9,7 @@ import os
 try:
     from PyQt5.QtWidgets import (
         QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QVBoxLayout,
-        QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QComboBox
+        QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QComboBox, QCheckBox
     )
     from PyQt5.QtCore import Qt, QProcess, QTimer
 except ImportError:
@@ -26,6 +26,27 @@ except ImportError:
 # --- Main Logic Begins After Successful Import ---
 import os
 import re
+
+def update_env_conf(new_entries: dict, env_path="env.conf"):
+    """Update env.conf with provided key=value pairs and ensure no duplicates."""
+    config = {}
+
+    # Load current config if exists
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            for line in f:
+                if "=" in line:
+                    key, val = line.strip().split("=", 1)
+                    config[key] = val
+
+    # Update with new entries
+    config.update(new_entries)
+
+    # Save cleaned env.conf
+    with open(env_path, "w") as f:
+        for key in sorted(config.keys()):
+            f.write(f"{key}={config[key]}\n")
+
 
 class WelcomePage(QWizardPage):
     def __init__(self):
@@ -199,6 +220,92 @@ class VMResourcesPage(QWizardPage):
             return False
 
 
+class InstallOptionsPage(QWizardPage):
+    def __init__(self):
+        super().__init__()
+        self.setTitle("Select Installation Options")
+        self.setSubTitle("Enable or disable specific components before provisioning.")
+
+        self.options = {
+            "INSTALL_KUBERNETES": QCheckBox("Kubernetes (K3s)"),
+            "INSTALL_DOCKER": QCheckBox("Docker & Compose"),
+            "INSTALL_ANSIBLE": QCheckBox("Ansible"),
+            "INSTALL_PYTHON": QCheckBox("Python 3.x"),
+            "INSTALL_CORE_APPS": QCheckBox("Core Lab Apps"),
+            "INSTALL_K8S_DASHBOARD": QCheckBox("K8s Dashboard"),
+            "INSTALL_HELM": QCheckBox("Helm"),
+            "INSTALL_NGINX": QCheckBox("NGINX Ingress Controller"),
+            "INSTALL_K8S_MONITORING": QCheckBox("Prometheus & Grafana Monitoring Stack"),
+            "INSTALL_INGRESS_RULES": QCheckBox("Ingress Routing Rules"),
+            "ENABLE_CHAOS_SIMULATOR": QCheckBox("Chaos Simulator (optional)")
+        }
+
+        # Set defaults
+        for key, checkbox in self.options.items():
+            if key == "ENABLE_CHAOS_SIMULATOR":
+                checkbox.setChecked(False)
+            else:
+                checkbox.setChecked(True)
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("🔧 Select which components to install:"))
+        for checkbox in self.options.values():
+            layout.addWidget(checkbox)
+
+        self.setLayout(layout)
+
+        # Connect dependency logic
+        self.options["INSTALL_KUBERNETES"].stateChanged.connect(self.sync_dependencies)
+
+    def sync_dependencies(self):
+        k8s_enabled = self.options["INSTALL_KUBERNETES"].isChecked()
+        dependent_keys = [
+            "INSTALL_K8S_DASHBOARD", "INSTALL_NGINX",
+            "INSTALL_K8S_MONITORING", "INSTALL_INGRESS_RULES",
+            "INSTALL_HELM", "INSTALL_CORE_APPS", "ENABLE_CHAOS_SIMULATOR"
+        ]
+        for key in dependent_keys:
+            checkbox = self.options[key]
+            checkbox.setEnabled(k8s_enabled)
+            if not k8s_enabled:
+                checkbox.setChecked(False)
+
+    def validatePage(self):
+        try:
+            env_path = "env.conf"
+
+            # Load existing config if it exists
+            if os.path.exists(env_path):
+                with open(env_path, "r") as f:
+                    lines = f.readlines()
+            else:
+                lines = []
+
+            # Build a dict of existing values
+            config = {}
+            for line in lines:
+                if "=" in line:
+                    key, val = line.strip().split("=", 1)
+                    config[key] = val
+
+            # ✅ Update selected install options
+            for key, checkbox in self.options.items():
+                config[key] = "true" if checkbox.isChecked() else "false"
+
+            # Write cleaned-up config
+            with open(env_path, "w") as f:
+                for key in sorted(config.keys()):
+                    f.write(f"{key}={config[key]}\n")
+
+            print("\033[32m✅ env.conf updated with install options\033[0m")
+            return True
+
+        except Exception as e:
+            print(f"\033[31m❌ Failed to update env.conf: {e}\033[0m")
+            return False
+
+
 class ProgressPage(QWizardPage):
     def __init__(self):
         super().__init__()
@@ -364,6 +471,8 @@ class FinishPage(QWizardPage):
         self.token_path = os.path.abspath("dashboard_token.txt")
         layout = QVBoxLayout()
 
+        layout.addWidget(QLabel("🌐 Access the Lab"))
+
         links = QLabel("""
             <ul>
                 <li><a href="https://k8s-dashboard.kube-lab.local">K8s Dashboard</a></li>
@@ -427,6 +536,7 @@ class KubeWizard(QWizard):
         self.addPage(WelcomePage())
         self.addPage(IPInputPage())
         self.addPage(VMResourcesPage())
+        self.addPage(InstallOptionsPage())
         self.addPage(ProgressPage())
         self.addPage(FinishPage())
         self.resize(640, 480)
