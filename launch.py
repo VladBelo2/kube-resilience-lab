@@ -27,26 +27,6 @@ except ImportError:
 import os
 import re
 
-def update_env_conf(new_entries: dict, env_path="env.conf"):
-    """Update env.conf with provided key=value pairs and ensure no duplicates."""
-    config = {}
-
-    # Load current config if exists
-    if os.path.exists(env_path):
-        with open(env_path, "r") as f:
-            for line in f:
-                if "=" in line:
-                    key, val = line.strip().split("=", 1)
-                    config[key] = val
-
-    # Update with new entries
-    config.update(new_entries)
-
-    # Save cleaned env.conf
-    with open(env_path, "w") as f:
-        for key in sorted(config.keys()):
-            f.write(f"{key}={config[key]}\n")
-
 
 class WelcomePage(QWizardPage):
     def __init__(self):
@@ -61,7 +41,7 @@ class WelcomePage(QWizardPage):
                 <br><br>
                 Kube Resilience Lab is a fully automated via <b>Vagrant</b>, 
                 cross-platform Kubernetes simulation environment designed for learning, resilience testing, and self-healing practice. 
-                It uses<b>K3s</b>, <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, <b>Helm</b>, and real apps to simulate failures, 
+                It uses <b>K3s</b>, <b>Prometheus</b>, <b>Grafana</b>, <b>Ingress</b>, <b>Helm</b>, and real apps to simulate failures, 
                 auto-detect them, and heal itself — all observable via dashboards and metrics.
             </p>
             <p>
@@ -125,13 +105,13 @@ class IPInputPage(QWizardPage):
 
             # Read existing lines if file exists
             if os.path.exists(env_conf_path):
-                with open(env_conf_path, "r") as f:
+                with open(env_conf_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()
             else:
                 lines = []
 
             # Write back lines, updating IP_ADDRESS or appending it
-            with open(env_conf_path, "w") as f:
+            with open(env_conf_path, "w", encoding="utf-8") as f:
                 for line in lines:
                     if line.startswith("IP_ADDRESS="):
                         f.write(ip_line)
@@ -142,9 +122,9 @@ class IPInputPage(QWizardPage):
                     f.write(ip_line)
 
             # ✅ Update Vagrantfile
-            with open("Vagrantfile", "r") as f:
+            with open("Vagrantfile", "r", encoding="utf-8") as f:
                 lines = f.readlines()
-            with open("Vagrantfile", "w") as f:
+            with open("Vagrantfile", "w", encoding="utf-8") as f:
                 for line in lines:
                     if "config.vm.network" in line and "private_network" in line:
                         f.write(f'  config.vm.network "private_network", ip: "{ip}"\n')
@@ -196,14 +176,14 @@ class VMResourcesPage(QWizardPage):
 
         try:
             # Update env.conf
-            with open("env.conf", "a") as f:
+            with open("env.conf", "a", encoding="utf-8") as f:
                 f.write(f"VM_MEMORY={memory}\n")
                 f.write(f"VM_CPUS={cpus}\n")
 
             # Update Vagrantfile
-            with open("Vagrantfile", "r") as f:
+            with open("Vagrantfile", "r", encoding="utf-8") as f:
                 lines = f.readlines()
-            with open("Vagrantfile", "w") as f:
+            with open("Vagrantfile", "w", encoding="utf-8") as f:
                 for line in lines:
                     if "vb.memory" in line:
                         f.write(f'    vb.memory = {memory}\n')
@@ -277,7 +257,7 @@ class InstallOptionsPage(QWizardPage):
 
             # Load existing config if it exists
             if os.path.exists(env_path):
-                with open(env_path, "r") as f:
+                with open(env_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()
             else:
                 lines = []
@@ -294,7 +274,7 @@ class InstallOptionsPage(QWizardPage):
                 config[key] = "true" if checkbox.isChecked() else "false"
 
             # Write cleaned-up config
-            with open(env_path, "w") as f:
+            with open(env_path, "w", encoding="utf-8") as f:
                 for key in sorted(config.keys()):
                     f.write(f"{key}={config[key]}\n")
 
