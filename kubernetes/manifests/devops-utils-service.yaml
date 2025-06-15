@@ -2,10 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: devops-utils-service
+  labels:
+    app: devops-utils
 spec:
   selector:
     app: devops-utils
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 5050
       targetPort: 5050

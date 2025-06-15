@@ -23,7 +23,10 @@ FAILURE_COUNTER.labels(job="remediator").inc(0)
 CHECK_COUNTER.inc(0)
 
 # === Prometheus URL inside the cluster ===
-PROMETHEUS_URL = "http://prometheus.default.svc.cluster.local:9090/api/v1/query"
+# PROMETHEUS_URL = "http://prometheus.default.svc.cluster.local:9090/api/v1/query"
+# PROMETHEUS_URL = "http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/query"
+PROMETHEUS_URL = "http://monitoring-kube-prometheus-prometheus.monitoring.svc:9090/api/v1/query"
+
 
 # Initialize Kubernetes client (auto in-cluster)
 config.load_incluster_config()
@@ -46,7 +49,7 @@ def get_failed_targets():
 
     except Exception as e:
         print(f"❌ Prometheus query failed: {e}", flush=True)
-        print(f"❌ Full Prometheus response: {resp.text}", flush=True)
+        # print(f"❌ Full Prometheus response: {resp.text}", flush=True)
         return []
 
 def remediate(job):
