@@ -55,9 +55,14 @@ class WelcomePage(QWizardPage):
 
     def initializePage(self):
         wizard = self.wizard()
-        wizard.setOption(QWizard.HaveCustomButton1, True)
-        wizard.setButtonText(QWizard.CustomButton1, "Cancel")
-        wizard.button(QWizard.CustomButton1).clicked.connect(wizard.close)
+        wizard.setButtonLayout([
+            QWizard.BackButton,
+            QWizard.NextButton,
+            QWizard.CancelButton,
+        ])
+        # wizard.setOption(QWizard.HaveCustomButton1, True)
+        # wizard.setButtonText(QWizard.CustomButton1, "Cancel")
+        # wizard.button(QWizard.CustomButton1).clicked.connect(wizard.close)
 
 
 class IPInputPage(QWizardPage):
