@@ -3,6 +3,7 @@ import subprocess
 import webbrowser
 import time
 import os
+import platform
 
 
 # --- PyQt5 Auto-Installer ---
@@ -27,6 +28,13 @@ except ImportError:
 import os
 import re
 
+
+# Check if running on Windows or macOS/Linux
+IS_WINDOWS = platform.system() == "Windows"
+if IS_WINDOWS:
+    print("🪟 Detected Windows host.")
+else:
+    print("🐧 Detected macOS/Linux host.")
 
 class WelcomePage(QWizardPage):
     def __init__(self):
@@ -61,9 +69,6 @@ class WelcomePage(QWizardPage):
             QWizard.NextButton,
             QWizard.CancelButton,
         ])
-        # wizard.setOption(QWizard.HaveCustomButton1, True)
-        # wizard.setButtonText(QWizard.CustomButton1, "Cancel")
-        # wizard.button(QWizard.CustomButton1).clicked.connect(wizard.close)
 
 
 class IPInputPage(QWizardPage):
@@ -71,6 +76,7 @@ class IPInputPage(QWizardPage):
         super().__init__()
         self.setTitle("Enter Private IP")
         self.setSubTitle("Provide the private IP for the VM (e.g., 192.168.56.120).")
+        self.has_validated = False
 
         self.ip_input = QLineEdit()
         self.registerField("privateIP*", self.ip_input)
@@ -94,6 +100,9 @@ class IPInputPage(QWizardPage):
         self.setLayout(layout)
 
     def validatePage(self):
+        if self.wizard().provisioning_finished:
+            return True
+        
         ip = self.ip_input.text().strip()
         if not ip:
             self.warning.setText("IP address cannot be empty.")
@@ -138,7 +147,7 @@ class IPInputPage(QWizardPage):
                         f.write(line)
 
             print(f"\033[32m✅ Updated IP to {ip} in Vagrantfile and env.conf\033[0m")
-
+            self.has_validated = True
             return True
 
         except Exception as e:
@@ -151,6 +160,7 @@ class VMResourcesPage(QWizardPage):
         super().__init__()
         self.setTitle("Configure VM Resources")
         self.setSubTitle("Choose the amount of CPU and Memory to allocate to the lab VM.")
+        self.has_validated = False
 
         layout = QVBoxLayout()
 
@@ -176,6 +186,9 @@ class VMResourcesPage(QWizardPage):
         self.setLayout(layout)
 
     def validatePage(self):
+        if self.wizard().provisioning_finished:
+            return True
+        
         # Save selected values to env.conf and patch Vagrantfile
         memory = self.memory_combo.currentData()
         cpus = self.cpu_combo.currentData()
@@ -199,6 +212,7 @@ class VMResourcesPage(QWizardPage):
                         f.write(line)
 
             print(f"\033[32m✅ Updated Vagrantfile with {memory}MB RAM and {cpus} CPUs\033[0m")
+            self.has_validated = True
             return True
 
         except Exception as e:
@@ -211,6 +225,7 @@ class InstallOptionsPage(QWizardPage):
         super().__init__()
         self.setTitle("Select Installation Options")
         self.setSubTitle("Enable or disable specific components before provisioning.")
+        self.has_validated = False
 
         self.options = {
             "INSTALL_KUBERNETES": QCheckBox("Kubernetes (K3s)"),
@@ -258,6 +273,9 @@ class InstallOptionsPage(QWizardPage):
                 checkbox.setChecked(False)
 
     def validatePage(self):
+        if self.wizard().provisioning_finished:
+            return True
+
         try:
             env_path = "env.conf"
 
@@ -285,6 +303,7 @@ class InstallOptionsPage(QWizardPage):
                     f.write(f"{key}={config[key]}\n")
 
             print("\033[32m✅ env.conf updated with install options\033[0m")
+            self.has_validated = True
             return True
 
         except Exception as e:
@@ -297,6 +316,7 @@ class ProgressPage(QWizardPage):
         super().__init__()
         self.setTitle("Provisioning VM")
         self.setSubTitle("Please wait while the lab is being set up...")
+        self.provisioning_started = False
 
         self.layout = QVBoxLayout()
         self.log_output = QTextEdit()
@@ -311,6 +331,10 @@ class ProgressPage(QWizardPage):
         self.process.finished.connect(self.process_finished)
 
     def initializePage(self):
+        if self.provisioning_started:
+            return # Don't run provisioning again
+        
+        self.provisioning_started = True
         self.log_output.clear()
         self.log_output.append('<span style="color:green;">🚀 Starting provisioning script...\n</span>')
 
@@ -327,23 +351,6 @@ class ProgressPage(QWizardPage):
         QTimer.singleShot(0, self.setup_and_start_provision)
 
     def setup_and_start_provision(self):
-        # wizard = self.wizard()
-
-        # # Disable < Back and Next > buttons
-        # wizard.setButtonLayout([
-        #     QWizard.Stretch,
-        #     QWizard.CustomButton1,
-        #     QWizard.BackButton,
-        #     QWizard.NextButton
-        # ])
-        # wizard.button(QWizard.NextButton).setEnabled(False)
-        # wizard.button(QWizard.BackButton).setEnabled(False)
-
-        # # Add Cancel button
-        # wizard.setOption(QWizard.HaveCustomButton1, True)
-        # wizard.setButtonText(QWizard.CustomButton1, "Cancel")
-        # wizard.button(QWizard.CustomButton1).clicked.connect(self.cancel_setup)
-
         # Start provisioning process
         project_root = os.path.dirname(os.path.abspath(__file__))
         self.process.setWorkingDirectory(project_root)
@@ -377,6 +384,8 @@ class ProgressPage(QWizardPage):
 
     def process_finished(self):
         wizard = self.wizard()
+        self.wizard().provisioning_finished = True
+
         if self.process.exitCode() == 0:
             self.log_output.append('<span style="color:green;">\n✅ Provisioning complete.\n</span>')
         else:
@@ -459,7 +468,7 @@ class ProgressPage(QWizardPage):
 
         # Remove Cancel button
         wizard.setOption(QWizard.HaveCustomButton1, False)
-
+        
     def cancel_setup(self):
         if self.process and self.process.state() == QProcess.Running:
             self.process.kill()
@@ -525,8 +534,8 @@ class FinishPage(QWizardPage):
 
         # Move Back button left, Finish button right (default layout)
         wizard.setButtonLayout([
-            QWizard.BackButton,
             QWizard.Stretch,
+            QWizard.BackButton,
             QWizard.CustomButton1,  # Your Finish button
         ])
 
@@ -536,6 +545,7 @@ class KubeWizard(QWizard):
         super().__init__()
         self.setWindowTitle("Kube Resilience Lab Setup")
         self.setWizardStyle(QWizard.ModernStyle)
+        self.provisioning_finished = False
 
         self.setButtonLayout([
             QWizard.BackButton,

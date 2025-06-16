@@ -1,7 +1,7 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/jammy64"
   config.vm.hostname = "kube-lab"
-  config.vm.network "private_network", ip: "192.168.56.120"
+  config.vm.network "private_network", ip: "92.168.56.120"
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 8192
     vb.cpus = 4
@@ -20,5 +20,9 @@ Vagrant.configure("2") do |config|
   config.vm.provision "file", source: "kubernetes/manifests/failure-simulator.yaml", destination: "/home/vagrant/kube-resilience-lab/kubernetes/manifests/failure-simulator.yaml"
 
   # 🔧 Shell provisioner
-  config.vm.provision "shell", path: "provision.sh"
+  if Vagrant::Util::Platform.windows?
+    config.vm.provision "shell", path: "provision_windows.ps1"
+  else
+    config.vm.provision "shell", path: "provision.sh"
+  end
 end
