@@ -36,25 +36,32 @@ jobs:
         for i in {1..20}; do
         UNREADY_COUNT=$(vagrant ssh -c '
           kubectl get pods -A -o json |
-          jq "[.items[]
+          jq "[.items[] 
             | select(
                 (
-                  # Exclude known non-critical svclb pods
-                  (.metadata.name | startswith(\"svclb-\"))
-                  | not
-                ) and (
-                  # Now check for actual readiness
-                  (
-                    .status.phase != \"Running\" and
-                    .status.phase != \"Succeeded\"
-                  ) or (
-                    .status.phase == \"Running\" and
-                    (.status.containerStatuses | type == \"array\" and
-                      (.status.containerStatuses | map(.ready) | any(. == false))
+                  # Exclude pods that are Completed (from Jobs or Helm installs)
+                  (.status.phase == \"Succeeded\" or .status.phase == \"Completed\")
+                  # Exclude pods with known helper labels like svclb
+                  or (.metadata.labels.app == \"svclb\")
+                  # Exclude pods owned by Job or Helm install hooks
+                  or (
+                    .metadata.ownerReferences[]? 
+                    | select(
+                        .kind == \"Job\" 
+                        or (.name | test(\"^helm-install-.*\"))
                     )
                   )
-                )
-            )
+                ) 
+                | not  # keep only real pods
+              )
+              | select(
+                  (
+                    .status.phase != \"Running\"
+                  ) or (
+                    .status.containerStatuses | type == \"array\" and
+                    (.status.containerStatuses | map(.ready) | any(. == false))
+                  )
+              )
           ] | length"
         ' | tr -d '\r')
 
