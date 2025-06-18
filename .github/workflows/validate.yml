@@ -15,10 +15,10 @@ jobs:
     - name: 📥 Checkout Repo
       uses: actions/checkout@v4
 
-    - name: ⚙️ Install VirtualBox & jq
+    - name: ⚙️ Install VirtualBox
       run: |
         sudo apt-get update
-        sudo apt-get install -y virtualbox jq
+        sudo apt-get install -y virtualbox
 
     - name: ⚙️ Install Vagrant (via HashiCorp .deb)
       run: |
@@ -69,8 +69,16 @@ jobs:
 
     - name: 📡 Check Prometheus Targets
       run: |
+        echo "[INFO] Checking Prometheus target health..."
         vagrant ssh -c '
-          curl -s http://prometheus.kube-lab.local/api/v1/targets | grep "up"
+          curl -s -o /tmp/targets.json -w "HTTP: %{http_code}\n" http://localhost:9090/api/v1/targets || echo "[ERROR] Curl failed"
+          if grep -q "up" /tmp/targets.json; then
+            echo "✅ Prometheus has active targets"
+          else
+            echo "❌ No targets found in Prometheus"
+            cat /tmp/targets.json
+            exit 1
+          fi
         '
 
     - name: 🧪 Optional Curl App URLs
