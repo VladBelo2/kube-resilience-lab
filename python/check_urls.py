@@ -36,7 +36,8 @@ def get_ingress_hosts():
 def check_url(host):
     try:
         result = subprocess.run(
-            ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-H", f"Host: {host}", "http://localhost"],
+            # ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-H", f"Host: {host}", "http://localhost"],
+            ["curl", "-s", "-L", "-o", "/dev/null", "-w", "%{http_code}", "-H", f"Host: {host}", "http://localhost"],
             capture_output=True,
             text=True,
             timeout=5,
