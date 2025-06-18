@@ -41,4 +41,3 @@ jobs:
     - name: 🧪 Optional Curl App URLs via Python
       run: |
         vagrant ssh -c 'python3 /home/vagrant/check_urls.py'
-
