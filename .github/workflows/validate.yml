@@ -37,8 +37,8 @@ jobs:
           UNREADY_COUNT=$(vagrant ssh -c "
             kubectl get pods -A -o json |
             jq '[.items[] | select(
-              .status.phase != \"Running\" and
-              .status.phase != \"Succeeded\"
+              .status.phase == \"Running\" and
+              (.status.containerStatuses[]?.ready != true)
             )] | length'
           ")
           echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
