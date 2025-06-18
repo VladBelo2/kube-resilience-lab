@@ -622,7 +622,7 @@ class FinishPage(QWizardPage):
             QMessageBox.warning(self, "Error", "Token file not found!")
 
     def run_update_hosts_script(self):
-        update_script = os.path.abspath("update_hosts.py")
+        update_script = os.path.abspath("python/update_hosts.py")
 
         if not os.path.exists(update_script):
             QMessageBox.warning(self, "Missing Script", "❌ update_hosts.py not found in current directory.")
