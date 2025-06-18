@@ -15,10 +15,10 @@ jobs:
     - name: 📥 Checkout Repo
       uses: actions/checkout@v4
 
-    - name: ⚙️ Install VirtualBox
+    - name: ⚙️ Install VirtualBox & jq
       run: |
         sudo apt-get update
-        sudo apt-get install -y virtualbox
+        sudo apt-get install -y virtualbox jq
 
     - name: ⚙️ Install Vagrant (via HashiCorp .deb)
       run: |
@@ -34,15 +34,29 @@ jobs:
       run: |
         echo "[INFO] Waiting for all pods to be Ready..."
         for i in {1..20}; do
-          if vagrant ssh -c "kubectl get pods -A | grep -v 'Running\|Completed\|Ready'" | grep -q .; then
-            echo "[WAIT] Some pods still not ready... retry $i/20"
-            sleep 15
-          else
-            echo "✅ All pods ready!"
+          UNREADY_COUNT=$(vagrant ssh -c "
+            kubectl get pods -A -o json |
+            jq '[.items[] | select(.status.containerStatuses[]?.ready != true)] | length'
+          ")
+          echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
+          if [ \"$UNREADY_COUNT\" -eq 0 ]; then
+            echo '✅ All pods are Ready!'
             exit 0
           fi
+          sleep 15
         done
-        echo "❌ Pods failed to become Ready in time"
+
+        echo '❌ Pods failed to become Ready in time'
+        echo '📋 Final pod list:'
+        vagrant ssh -c 'kubectl get pods -A -o wide'
+        echo '🧪 Detailed status of unready pods:'
+        vagrant ssh -c '
+          kubectl get pods -A -o json |
+          jq -r "
+            .items[] |
+            select(.status.containerStatuses[]?.ready != true) |
+            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReason: \(.status.containerStatuses[]?.state | tojson)\n---\""
+        '
         exit 1
 
     - name: 📡 Check Prometheus Targets
