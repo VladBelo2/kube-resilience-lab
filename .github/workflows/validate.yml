@@ -42,7 +42,8 @@ jobs:
             )] | length'
           ")
           echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
-          if [ \"$UNREADY_COUNT\" -eq 0 ]; then
+          UNREADY_COUNT=$(vagrant ssh -c 'kubectl get pods -A -o json | jq ...' | tr -d '\r')
+          if [ "$UNREADY_COUNT" -eq 0 ]; then
             echo '✅ All pods are Ready!'
             exit 0
           fi
@@ -57,7 +58,10 @@ jobs:
           kubectl get pods -A -o json |
           jq -r "
             .items[] |
-            select(.status.containerStatuses[]?.ready != true) |
+            select(
+              .status.phase == \"Running\" and
+              (.status.containerStatuses[]?.ready != true)
+            ) |
             \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReason: \(.status.containerStatuses[]?.state | tojson)\n---\""
         '
         exit 1
