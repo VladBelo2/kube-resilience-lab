@@ -47,15 +47,15 @@ jobs:
               )
             | select(
                 (
-                .status.phase != "Running"
-                or (.status.containerStatuses | type != "array")
-                or (.status.containerStatuses | map(.ready) | any(. == false))
-                or (
-                  (.status.conditions // [])
-                  | map(select(.type == "Ready" and .status != "True"))
-                  | length > 0
+                  .status.phase != \"Running\"
+                  or (.status.containerStatuses | type != \"array\")
+                  or (.status.containerStatuses | map(.ready) | any(. == false))
+                  or (
+                    (.status.conditions // [])
+                    | map(select(.type == \"Ready\" and .status != \"True\"))
+                    | length > 0
+                  )
                 )
-              )
             )
           ] | length"
         ' | tr -d '\r')
