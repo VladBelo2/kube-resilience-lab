@@ -46,6 +46,8 @@ jobs:
 
           if [[ $UNREADY_COUNT =~ ^[0-9]+$ ]] && [ $UNREADY_COUNT -eq 0 ]; then
             echo '✅ All pods are Ready!'
+            echo '📋 List of all Running pods:'
+            vagrant ssh -c 'kubectl get pods -A -o wide'
             exit 0
           fi
           sleep 15
@@ -54,6 +56,7 @@ jobs:
         echo '❌ Pods failed to become Ready in time'
         echo '📋 Final pod list:'
         vagrant ssh -c 'kubectl get pods -A -o wide'
+
         echo '🧪 Detailed status of unready pods:'
         vagrant ssh -c '
           kubectl get pods -A -o json |
