@@ -15,7 +15,7 @@ def check_prometheus_targets(max_attempts=10, delay=10):
 
         try:
             result = subprocess.run(
-                ["curl", "-s", "-H", f"Host: {headers['Host']}", url],
+                ["curl", "-s", "--resolve", f"{headers['Host']}:80:127.0.0.1", url],
                 capture_output=True, text=True, timeout=5
             )
 
