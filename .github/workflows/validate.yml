@@ -39,7 +39,7 @@ jobs:
           jq "[.items[] 
             | select(
                 (
-                  # Exclude svclb and helm-install helpers
+                  # Exclude completed/helm/svclb helper pods
                   (.status.phase == \"Succeeded\" or .status.phase == \"Completed\") or
                   (.metadata.labels.app == \"svclb\") or
                   (.metadata.ownerReferences[]? | select(.kind == \"Job\" or (.name | test(\"^helm-install-.*\"))))
@@ -47,12 +47,13 @@ jobs:
               )
             | select(
                 (
-                  .status.phase != \"Running\"
-                ) or (
-                  (.status.containerStatuses // []) == [] or
-                  (.status.containerStatuses | map(.ready) | any(. == false))
+                  # Not Running OR missing containerStatuses OR any container not ready
+                  .status.phase != \"Running\" or
+                  (.status.containerStatuses | type != \"array\") or
+                  (.status.containerStatuses | map(.ready) | any(. == false)) or
+                  (.status.reason == \"ContainerCreating\" or .status.reason == \"PodInitializing\")
                 )
-              )
+            )
           ] | length"
         ' | tr -d '\r')
 
@@ -85,9 +86,11 @@ jobs:
                 (
                   (.status.containerStatuses // []) | map(.ready) | any(. == false)
                 )
+              ) or (
+                .status.reason == \"ContainerCreating\" or .status.reason == \"PodInitializing\"
               )
             ) |
-            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReady States: \((.status.containerStatuses // [])[]?.ready)\nReason: \((.status.containerStatuses // [])[]?.state | tojson)\n---\""
+            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReason: \(.status.reason)\nReady States: \((.status.containerStatuses // [])[]?.ready)\n---\""
         '
         exit 1
 
