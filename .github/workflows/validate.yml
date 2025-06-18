@@ -40,11 +40,11 @@ jobs:
               | select(
                   (
                     .status.phase != \"Running\" and
-                    .status.phase != \"Completed\"
+                    .status.phase != \"Succeeded\"
                   ) or (
                     .status.phase == \"Running\" and
-                    (.status.containerStatuses | type == \"array\" and
-                      (.status.containerStatuses | map(.ready) | any(. == false))
+                    (
+                      (.status.containerStatuses // []) | map(.ready) | any(. == false)
                     )
                   )
                 )
@@ -74,15 +74,15 @@ jobs:
             .items[] |
             select(
               (
-                .status.phase != \"Running\" and .status.phase != \"Completed\"
+                .status.phase != \"Running\" and .status.phase != \"Succeeded\"
               ) or (
                 .status.phase == \"Running\" and
-                (.status.containerStatuses | type == \"array\" and
-                  (.status.containerStatuses | map(.ready) | any(. == false))
+                (
+                  (.status.containerStatuses // []) | map(.ready) | any(. == false)
                 )
               )
             ) |
-            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReady States: \(.status.containerStatuses[]?.ready)\nReason: \(.status.containerStatuses[]?.state | tojson)\n---\""
+            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReady States: \((.status.containerStatuses // [])[]?.ready)\nReason: \((.status.containerStatuses // [])[]?.state | tojson)\n---\""
         '
         exit 1
 
