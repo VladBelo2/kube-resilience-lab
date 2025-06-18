@@ -15,7 +15,7 @@ def check_prometheus_targets(max_attempts=10, delay=10):
 
         try:
             result = subprocess.run(
-                ["curl", "-s", "--resolve", f"{headers['Host']}:80:127.0.0.1", url],
+                ["curl", "-s", "-H", f"Host: {headers['Host']}", url],
                 capture_output=True, text=True, timeout=5
             )
 
@@ -24,24 +24,35 @@ def check_prometheus_targets(max_attempts=10, delay=10):
                 time.sleep(delay)
                 continue
 
-            stdout = result.stdout.strip()
-
             try:
-                data = json.loads(stdout)
-            except json.JSONDecodeError as json_err:
-                print(f"[ERROR] Failed to parse JSON: {json_err}")
-                print(f"[DEBUG] Raw output:\n{stdout[:300]}...")  # print first 300 chars for inspection
+                data = json.loads(result.stdout)
+            except json.JSONDecodeError as e:
+                print(f"[ERROR] Failed to parse JSON: {e}")
+                print("[DEBUG] Raw output:")
+                print(result.stdout.strip()[:500] + "...\n")
                 time.sleep(delay)
                 continue
 
             active_targets = data.get("data", {}).get("activeTargets", [])
-            healthy = [t for t in active_targets if t.get("health", "").lower() == "up"]
+
+            if not active_targets:
+                print("[WARN] No active targets found yet.")
+                time.sleep(delay)
+                continue
+
+            healthy = 0
+            for target in active_targets:
+                job = target.get("labels", {}).get("job", "unknown")
+                status = target.get("health", "unknown")
+                print(f"[INFO] Prometheus target: {job} — status: {status}")
+                if status == "up":
+                    healthy += 1
 
             if healthy:
-                print(f"✅ Prometheus has {len(healthy)} healthy targets")
+                print(f"✅ Prometheus has {healthy} healthy targets")
                 return 0
             else:
-                print(f"[WAIT] Prometheus up, but targets not healthy (attempt {attempt}/{max_attempts})")
+                print(f"[WAIT] Prometheus is up, but targets not healthy (attempt {attempt}/{max_attempts})")
 
         except Exception as e:
             print(f"[ERROR] Exception occurred: {e}")
