@@ -86,7 +86,7 @@ fi
 # ─────────────────────────────────────────────
 echo "[OK] 📁 Syncing project structure..."
 mkdir -p /home/vagrant/kube-resilience-lab
-cp -r /vagrant/* /home/vagrant/kube-resilience-lab
+# cp -r /vagrant/* /home/vagrant/kube-resilience-lab
 chown -R vagrant:vagrant /home/vagrant/kube-resilience-lab
 
 # ─────────────────────────────────────────────

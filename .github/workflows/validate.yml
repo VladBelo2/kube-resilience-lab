@@ -47,12 +47,15 @@ jobs:
               )
             | select(
                 (
-                  # Not Running OR missing containerStatuses OR any container not ready
-                  .status.phase != \"Running\" or
-                  (.status.containerStatuses | type != \"array\") or
-                  (.status.containerStatuses | map(.ready) | any(. == false)) or
-                  (.status.reason == \"ContainerCreating\" or .status.reason == \"PodInitializing\")
+                .status.phase != "Running"
+                or (.status.containerStatuses | type != "array")
+                or (.status.containerStatuses | map(.ready) | any(. == false))
+                or (
+                  (.status.conditions // [])
+                  | map(select(.type == "Ready" and .status != "True"))
+                  | length > 0
                 )
+              )
             )
           ] | length"
         ' | tr -d '\r')
