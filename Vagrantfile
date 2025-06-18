@@ -18,7 +18,8 @@ Vagrant.configure("2") do |config|
   config.vm.provision "file", source: "python/apps/remediator", destination: "/home/vagrant/remediator"
   config.vm.provision "file", source: "python/apps/devops-utils", destination: "/home/vagrant/devops-utils"
   config.vm.provision "file", source: "kubernetes/manifests/failure-simulator.yaml", destination: "/home/vagrant/kube-resilience-lab/kubernetes/manifests/failure-simulator.yaml"
-  config.vm.provision "file", source: "check_health.py", destination: "/home/vagrant/check_health.py"
+  config.vm.provision "file", source: "python/check_health.py", destination: "/home/vagrant/check_health.py"
+  config.vm.provision "file", source: "python/check_prometheus.py", destination: "/home/vagrant/check_prometheus.py"
 
   # 🗂️ Sync project folder
   # config.vm.synced_folder ".", "/home/vagrant/kube-resilience-lab", type: "virtualbox"
