@@ -36,35 +36,7 @@ jobs:
       
     - name: 📡 Check Prometheus Targets
       run: |
-        echo "[INFO] Waiting for Prometheus targets to become available..."
-
-        for i in {1..10}; do
-          vagrant ssh -c '
-            curl -s -o /tmp/targets.json -w "HTTP: %{http_code}\n" http://localhost:9090/api/v1/targets
-          ' > curl_output.txt 2>&1
-
-          if grep -q "HTTP: 200" curl_output.txt; then
-            echo "[OK] Prometheus responded."
-            if vagrant ssh -c "grep -q '\"health\":\"up\"' /tmp/targets.json"; then
-              echo "✅ Prometheus has active targets"
-              break
-            else
-              echo "[WAIT] Prometheus up, but targets not ready yet (attempt $i/10)"
-            fi
-          else
-            echo "[WAIT] Prometheus not reachable yet (attempt $i/10)"
-          fi
-
-          sleep 10
-        done
-
-        echo "[INFO] Final Prometheus target dump:"
-        vagrant ssh -c 'cat /tmp/targets.json || echo "No targets.json found."'
-
-        if ! vagrant ssh -c "grep -q '\"health\":\"up\"' /tmp/targets.json"; then
-          echo "❌ Prometheus targets not healthy."
-          exit 1
-        fi
+        vagrant ssh -c 'python3 /home/vagrant/check_prometheus.py'
 
     - name: 🧪 Optional Curl App URLs
       run: |
