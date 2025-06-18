@@ -1,34 +1,42 @@
 import subprocess
 import time
-import json
 import sys
+import json
 import functools
 
-print = functools.partial(print, flush=True)  # Ensure print is flushed immediately
+print = functools.partial(print, flush=True)
 
 def check_prometheus_targets(max_attempts=10, delay=10):
+    url = "http://localhost/api/v1/targets"
+    headers = {"Host": "prometheus.kube-lab.local"}
+
     for attempt in range(1, max_attempts + 1):
-        print(f"[INFO] Checking Prometheus targets (attempt {attempt}/{max_attempts})", flush=True)
+        print(f"[INFO] Checking Prometheus targets (attempt {attempt}/{max_attempts})")
+
         try:
             result = subprocess.run(
-                ["curl", "-s", "http://localhost:9090/api/v1/targets"],
+                ["curl", "-s", "-H", f"Host: {headers['Host']}", url],
                 capture_output=True, text=True, timeout=5
             )
-            if result.returncode != 0:
+
+            if result.returncode != 0 or not result.stdout.strip():
                 print("[WARN] Prometheus not reachable yet.")
                 time.sleep(delay)
                 continue
 
             data = json.loads(result.stdout)
-            targets = data.get("data", {}).get("activeTargets", [])
 
-            if any(t.get("health") == "up" for t in targets):
-                print("✅ Prometheus has active targets.")
+            active_targets = data.get("data", {}).get("activeTargets", [])
+            healthy = [t for t in active_targets if t.get("health") == "up"]
+
+            if healthy:
+                print(f"✅ Prometheus has {len(healthy)} healthy targets")
                 return 0
             else:
-                print("[WAIT] Prometheus up, but targets not healthy.")
+                print(f"[WAIT] Prometheus up, but targets not healthy (attempt {attempt}/{max_attempts})")
+
         except Exception as e:
-            print(f"[ERROR] Exception: {e}")
+            print(f"[ERROR] Exception occurred: {e}")
 
         time.sleep(delay)
 

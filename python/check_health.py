@@ -58,6 +58,10 @@ def check_all_pods_ready(max_attempts=20, delay=15):
 
         if not unready_pods:
             print("✅ All important pods are Ready!")
+
+            print("\n📋 All Running pods (wide):")
+            subprocess.run(["kubectl", "get", "pods", "-A", "-o", "wide"])
+
             return 0
 
         time.sleep(delay)
