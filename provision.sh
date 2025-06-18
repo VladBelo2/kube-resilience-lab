@@ -1,10 +1,18 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ─────────────────────────────────────────────
 # Load config toggles
 echo "[OK] 📜 Loading env.conf toggles..."
-source /home/vagrant/env.conf
+if [ -f /home/vagrant/env.conf ]; then
+  sed -i 's/\r$//' /home/vagrant/env.conf
+  . /home/vagrant/env.conf
+  echo "[DEBUG] Loaded env.conf successfully"
+  echo "[DEBUG] INSTALL_KUBERNETES=$INSTALL_KUBERNETES"
+else
+  echo "[ERROR] env.conf not found!" >&2
+  exit 1
+fi
 
 # ─────────────────────────────────────────────
 echo "[OK] 📦 Installing base packages..."

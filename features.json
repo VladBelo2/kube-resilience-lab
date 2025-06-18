@@ -1,0 +1,64 @@
+[
+  {
+    "key": "INSTALL_KUBERNETES",
+    "label": "Kubernetes (K3s)",
+    "default": true
+  },
+  {
+    "key": "INSTALL_DOCKER",
+    "label": "Docker & Compose",
+    "default": true
+  },
+  {
+    "key": "INSTALL_ANSIBLE",
+    "label": "Ansible",
+    "default": true
+  },
+  {
+    "key": "INSTALL_PYTHON",
+    "label": "Python 3.x",
+    "default": true
+  },
+  {
+    "key": "INSTALL_CORE_APPS",
+    "label": "Core Lab Apps",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "INSTALL_K8S_DASHBOARD",
+    "label": "K8s Dashboard",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "INSTALL_HELM",
+    "label": "Helm",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "INSTALL_NGINX",
+    "label": "NGINX Ingress Controller",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "INSTALL_K8S_MONITORING",
+    "label": "Prometheus & Grafana Monitoring Stack",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "INSTALL_INGRESS_RULES",
+    "label": "Ingress Routing Rules",
+    "default": true,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  },
+  {
+    "key": "ENABLE_CHAOS_SIMULATOR",
+    "label": "Chaos Simulator (optional)",
+    "default": false,
+    "depends_on": ["INSTALL_KUBERNETES"]
+  }
+]

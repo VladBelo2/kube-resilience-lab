@@ -4,13 +4,15 @@ import webbrowser
 import time
 import os
 import platform
+import json
+from validate_env import validate_env
 
 
 # --- PyQt5 Auto-Installer ---
 try:
     from PyQt5.QtWidgets import (
         QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QVBoxLayout,
-        QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QComboBox, QCheckBox
+        QTextEdit, QPushButton, QMessageBox, QHBoxLayout, QComboBox, QCheckBox, QSizePolicy
     )
     from PyQt5.QtCore import Qt, QProcess, QTimer
 except ImportError:
@@ -188,18 +190,32 @@ class VMResourcesPage(QWizardPage):
     def validatePage(self):
         if self.wizard().provisioning_finished:
             return True
-        
-        # Save selected values to env.conf and patch Vagrantfile
+
         memory = self.memory_combo.currentData()
         cpus = self.cpu_combo.currentData()
 
         try:
-            # Update env.conf
-            with open("env.conf", "a", encoding="utf-8") as f:
-                f.write(f"VM_MEMORY={memory}\n")
-                f.write(f"VM_CPUS={cpus}\n")
+            env_conf_path = "env.conf"
+            config = {}
 
-            # Update Vagrantfile
+            # Load existing env.conf (if exists)
+            if os.path.exists(env_conf_path):
+                with open(env_conf_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if "=" in line:
+                            key, val = line.strip().split("=", 1)
+                            config[key] = val
+
+            # ✅ Update values
+            config["VM_MEMORY"] = str(memory)
+            config["VM_CPUS"] = str(cpus)
+
+            # Write clean config back
+            with open(env_conf_path, "w", encoding="utf-8") as f:
+                for key in sorted(config.keys()):
+                    f.write(f"{key}={config[key]}\n")
+
+            # ✅ Update Vagrantfile
             with open("Vagrantfile", "r", encoding="utf-8") as f:
                 lines = f.readlines()
             with open("Vagrantfile", "w", encoding="utf-8") as f:
@@ -211,7 +227,7 @@ class VMResourcesPage(QWizardPage):
                     else:
                         f.write(line)
 
-            print(f"\033[32m✅ Updated Vagrantfile with {memory}MB RAM and {cpus} CPUs\033[0m")
+            print(f"\033[32m✅ Updated Vagrantfile with {memory}[MB] RAM and {cpus} CPUs\033[0m")
             self.has_validated = True
             return True
 
@@ -226,79 +242,161 @@ class InstallOptionsPage(QWizardPage):
         self.setTitle("Select Installation Options")
         self.setSubTitle("Enable or disable specific components before provisioning.")
         self.has_validated = False
+        self.options = {}
+        self.features = []
 
-        self.options = {
-            "INSTALL_KUBERNETES": QCheckBox("Kubernetes (K3s)"),
-            "INSTALL_DOCKER": QCheckBox("Docker & Compose"),
-            "INSTALL_ANSIBLE": QCheckBox("Ansible"),
-            "INSTALL_PYTHON": QCheckBox("Python 3.x"),
-            "INSTALL_CORE_APPS": QCheckBox("Core Lab Apps"),
-            "INSTALL_K8S_DASHBOARD": QCheckBox("K8s Dashboard"),
-            "INSTALL_HELM": QCheckBox("Helm"),
-            "INSTALL_NGINX": QCheckBox("NGINX Ingress Controller"),
-            "INSTALL_K8S_MONITORING": QCheckBox("Prometheus & Grafana Monitoring Stack"),
-            "INSTALL_INGRESS_RULES": QCheckBox("Ingress Routing Rules"),
-            "ENABLE_CHAOS_SIMULATOR": QCheckBox("Chaos Simulator (optional)")
-        }
+        # Load features from JSON
+        try:
+            with open("features.json", "r", encoding="utf-8") as f:
+                features = json.load(f)
 
-        # Set defaults
-        for key, checkbox in self.options.items():
-            if key == "ENABLE_CHAOS_SIMULATOR":
-                checkbox.setChecked(False)
-            else:
-                checkbox.setChecked(True)
+            # Validate structure
+            seen_keys = set()
+            for i, feat in enumerate(features):
+                if "key" not in feat or "label" not in feat:
+                    raise ValueError(f"Feature at index {i} is missing 'key' or 'label'")
+                if feat["key"] in seen_keys:
+                    raise ValueError(f"Duplicate key detected: {feat['key']}")
+                seen_keys.add(feat["key"])
+
+                # Optionally, validate types
+                if not isinstance(feat["key"], str) or not isinstance(feat["label"], str):
+                    raise ValueError(f"Feature at index {i} has invalid types")
+                if "default" in feat and not isinstance(feat["default"], bool):
+                    raise ValueError(f"'default' must be a boolean in feature {feat['key']}")
+                if "depends_on" in feat and not isinstance(feat["depends_on"], list):
+                    raise ValueError(f"'depends_on' must be a list in feature {feat['key']}")
+
+            self.features = features
+
+        except Exception as e:
+            QMessageBox.critical(self, "features.json Error", f"⚠️ features.json is invalid:\n\n{str(e)}")
+            sys.exit(1)
 
         # Layout
         layout = QVBoxLayout()
         layout.addWidget(QLabel("🔧 Select which components to install:"))
-        for checkbox in self.options.values():
+
+        for feature in self.features:
+            key = feature["key"]
+            label = feature["label"]
+            default = feature.get("default", True)
+
+            checkbox = QCheckBox(label)
+            checkbox.setChecked(default)
+            self.options[key] = checkbox
             layout.addWidget(checkbox)
 
         self.setLayout(layout)
 
-        # Connect dependency logic
-        self.options["INSTALL_KUBERNETES"].stateChanged.connect(self.sync_dependencies)
+        # Dependency logic
+        for feature in self.features:
+            if "depends_on" in feature:
+                for parent_key in feature["depends_on"]:
+                    self.options[parent_key].stateChanged.connect(self.sync_dependencies)
+
+        self.sync_dependencies()
 
     def sync_dependencies(self):
-        k8s_enabled = self.options["INSTALL_KUBERNETES"].isChecked()
-        dependent_keys = [
-            "INSTALL_K8S_DASHBOARD", "INSTALL_NGINX",
-            "INSTALL_K8S_MONITORING", "INSTALL_INGRESS_RULES",
-            "INSTALL_HELM", "INSTALL_CORE_APPS", "ENABLE_CHAOS_SIMULATOR"
-        ]
-        for key in dependent_keys:
+        config = {k: cb.isChecked() for k, cb in self.options.items()}
+        for feature in self.features:
+            key = feature["key"]
+            depends_on = feature.get("depends_on", [])
             checkbox = self.options[key]
-            checkbox.setEnabled(k8s_enabled)
-            if not k8s_enabled:
+
+            enabled = all(config.get(dep, False) for dep in depends_on)
+            checkbox.setEnabled(enabled)
+            if not enabled:
                 checkbox.setChecked(False)
 
     def validatePage(self):
         if self.wizard().provisioning_finished:
             return True
 
+        # 🔍 Run env validation before saving install options
+        result = validate_env()
+        if result["status"] == "error":
+            QMessageBox.critical(self, "Validation Error", result["message"])
+            return False
+
+        real_extras = result["real_extras"]
+        missing = result["missing"]
+
+        print(f"\033[36m[Validation] 🔍 safe_extras: {result['safe_extras']}\033[0m")
+        print(f"\033[36m[Validation] 🔍 real_extras: {real_extras}\033[0m")
+        print(f"\033[36m[Validation] 🔍 missing: {missing}\033[0m")
+
+        if real_extras or missing:
+            msg = "🚨 <b>Mismatch detected between <code>features.json</code> and <code>env.conf</code></b><br><br>"
+            if real_extras:
+                msg += f"<b>Unexpected keys:</b> {', '.join(real_extras)}<br>"
+            if missing:
+                msg += f"<b>Missing keys:</b> {', '.join(missing)}<br>"
+            msg += "<br>Would you like to fix this?"
+
+            dialog = QMessageBox(self)
+            dialog.setWindowTitle("Validate env.conf")
+            dialog.setTextFormat(Qt.RichText)
+            dialog.setIcon(QMessageBox.Warning)
+            dialog.setText(msg)
+            dialog.addButton("Fix Now", QMessageBox.AcceptRole)
+            dialog.addButton("Continue Anyway", QMessageBox.DestructiveRole)
+            dialog.addButton("Cancel", QMessageBox.RejectRole)
+            choice = dialog.exec()
+
+            if choice == 0:  # Fix Now
+                try:
+                    # Load features.json again for defaults
+                    with open("features.json", "r", encoding="utf-8") as f:
+                        features = json.load(f)
+                    defaults = {f["key"]: str(f.get("default", "false")).lower() for f in features}
+
+                    # Load current env.conf
+                    env_path = "env.conf"
+                    config = {}
+                    if os.path.exists(env_path):
+                        with open(env_path, "r", encoding="utf-8") as f:
+                            for line in f:
+                                if "=" in line:
+                                    key, val = line.strip().split("=", 1)
+                                    config[key] = val
+
+                    # Add missing keys using defaults
+                    for key in missing:
+                        config[key] = defaults.get(key, "false")
+                        print(f"\033[32m[FIXED] Added missing key: {key}={config[key]}\033[0m")
+
+                    # Write updated env.conf
+                    with open(env_path, "w", encoding="utf-8") as f:
+                        for key in sorted(config.keys()):
+                            f.write(f"{key}={config[key]}\n")
+
+                    QMessageBox.information(self, "Fix Complete", "✅ Missing keys were added to env.conf automatically.")
+                except Exception as e:
+                    QMessageBox.critical(self, "Fix Failed", f"❌ Could not fix env.conf:\n\n{e}")
+                    return False
+
+            elif choice == 1:  # Continue Anyway
+                pass
+            elif choice == 2:  # Cancel
+                return False
+
+        # ✅ Save install options to env.conf
         try:
-            env_path = "env.conf"
-
-            # Load existing config if it exists
-            if os.path.exists(env_path):
-                with open(env_path, "r", encoding="utf-8") as f:
-                    lines = f.readlines()
-            else:
-                lines = []
-
-            # Build a dict of existing values
+            env_conf_path = "env.conf"
             config = {}
-            for line in lines:
-                if "=" in line:
-                    key, val = line.strip().split("=", 1)
-                    config[key] = val
 
-            # ✅ Update selected install options
+            if os.path.exists(env_conf_path):
+                with open(env_conf_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if "=" in line:
+                            key, val = line.strip().split("=", 1)
+                            config[key] = val
+
             for key, checkbox in self.options.items():
                 config[key] = "true" if checkbox.isChecked() else "false"
 
-            # Write cleaned-up config
-            with open(env_path, "w", encoding="utf-8") as f:
+            with open(env_conf_path, "w", encoding="utf-8") as f:
                 for key in sorted(config.keys()):
                     f.write(f"{key}={config[key]}\n")
 
@@ -501,12 +599,19 @@ class FinishPage(QWizardPage):
 
         # View Token section (handled separately)
         self.token_label = QLabel("🔑 <b>K8s-Dashboard Token</b> (one-time):<br>")
-        self.token_link = QLabel('<a href="#">📂 View Token</a>')
+        self.token_link = QLabel('<a href="#">📂 View Token</a><br>')
         self.token_link.setOpenExternalLinks(False)
         self.token_link.linkActivated.connect(self.open_token_file)
 
         layout.addWidget(self.token_label)
         layout.addWidget(self.token_link)
+
+        # 📌 Button to update hosts file
+        self.update_hosts_btn = QPushButton("📌 Update hosts file for routing")
+        self.update_hosts_btn.clicked.connect(self.run_update_hosts_script)
+        self.update_hosts_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        layout.addWidget(self.update_hosts_btn)
+
         self.setLayout(layout)
         
     def open_token_file(self):
@@ -515,6 +620,57 @@ class FinishPage(QWizardPage):
             webbrowser.open(f"file://{token_path}")
         else:
             QMessageBox.warning(self, "Error", "Token file not found!")
+
+    def run_update_hosts_script(self):
+        update_script = os.path.abspath("update_hosts.py")
+
+        if not os.path.exists(update_script):
+            QMessageBox.warning(self, "Missing Script", "❌ update_hosts.py not found in current directory.")
+            return
+
+        system = platform.system()
+
+        if system == "Windows":
+            # Run in new admin cmd window
+            try:
+                subprocess.run([
+                    "powershell", "-Command",
+                    f'Start-Process cmd -ArgumentList \'/k python "{update_script}"\' -Verb runAs'
+                ])
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"❌ Could not launch update_hosts.py as admin:\n{e}")
+                
+        elif system == "Darwin":
+            # macOS: run in Terminal with sudo and a message
+            try:
+                subprocess.Popen([
+                    "osascript", "-e",
+                    f'''
+                    tell application "Terminal"
+                        activate
+                        do script "cd \\"{os.getcwd()}\\"; clear; echo '🔐 Enter sudo password to update hosts file:'; sudo python3 \\"{update_script}\\""
+                    end tell
+                    '''
+                ])
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"❌ Could not launch Terminal:\n{e}")
+
+        else:
+            # Linux: attempt to run in terminal with sudo
+            try:
+                subprocess.Popen([
+                    "x-terminal-emulator", "-e",
+                    f'sudo python3 "{update_script}"'
+                ])
+            except FileNotFoundError:
+                # Fallback if x-terminal-emulator not found
+                try:
+                    subprocess.Popen([
+                        "gnome-terminal", "--", "bash", "-c",
+                        f'sudo python3 "{update_script}"; exec bash'
+                    ])
+                except Exception as e:
+                    QMessageBox.critical(self, "Error", f"❌ Could not launch update_hosts.py:\n{e}")
 
     def cleanup_token(self):
         if os.path.exists(self.token_path):
