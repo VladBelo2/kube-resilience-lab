@@ -147,7 +147,7 @@ During provisioning, the wizard:
 | 📊 Grafana        | http://grafana.kube-lab.local            |
 | 💥 MicroFail App  | http://microfail.kube-lab.local          |
 | 📝 To-Do App      | http://todo.kube-lab.local               |
-| 🛠 DevOps Tools   | http://todo.kube-lab.local               |
+| 🛠 DevOps Tools   | http://devops.kube-lab.local             |
 
 ---
 
@@ -260,6 +260,12 @@ Grafana auto-loads dashboards via ConfigMap
 | 💣 Phase 3   | Add more chaos: CPU spike, disk fill, kill Ingress, DNS failures
 | 🧠 Phase 4   | Integrate Ansible for OS-level remediation (e.g. clear disk)
 | 🌍 Phase 5   | Publish as GitHub template + full documentation + screenshots
+
+---
+
+## 📄 License
+
+MIT License
 
 ---
 
