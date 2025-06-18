@@ -17,7 +17,7 @@ fi
 # ─────────────────────────────────────────────
 echo "[OK] 📦 Installing base packages..."
 apt update && apt install -y \
-  curl wget git unzip gnupg lsb-release ca-certificates \
+  curl wget git unzip gnupg lsb-release ca-certificates jq \
   net-tools iputils-ping dnsutils software-properties-common sudo
 
 # ─────────────────────────────────────────────
