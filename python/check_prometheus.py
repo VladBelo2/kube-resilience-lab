@@ -24,10 +24,18 @@ def check_prometheus_targets(max_attempts=10, delay=10):
                 time.sleep(delay)
                 continue
 
-            data = json.loads(result.stdout)
+            stdout = result.stdout.strip()
+
+            try:
+                data = json.loads(stdout)
+            except json.JSONDecodeError as json_err:
+                print(f"[ERROR] Failed to parse JSON: {json_err}")
+                print(f"[DEBUG] Raw output:\n{stdout[:300]}...")  # print first 300 chars for inspection
+                time.sleep(delay)
+                continue
 
             active_targets = data.get("data", {}).get("activeTargets", [])
-            healthy = [t for t in active_targets if t.get("health") == "up"]
+            healthy = [t for t in active_targets if t.get("health", "").lower() == "up"]
 
             if healthy:
                 print(f"✅ Prometheus has {len(healthy)} healthy targets")
