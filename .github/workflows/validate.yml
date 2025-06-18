@@ -30,73 +30,9 @@ jobs:
         vagrant up --no-provision
         vagrant provision
 
-    - name: ✅ Check Pod Readiness
-      run: |
-        echo "[INFO] Waiting for all pods to be Ready..."
-        for i in {1..20}; do
-        UNREADY_COUNT=$(vagrant ssh -c '
-          kubectl get pods -A -o json |
-          jq "[.items[] 
-            | select(
-                (
-                  # Exclude completed/helm/svclb helper pods
-                  (.status.phase == \"Succeeded\" or .status.phase == \"Completed\") or
-                  (.metadata.labels.app == \"svclb\") or
-                  (.metadata.ownerReferences[]? | select(.kind == \"Job\" or (.name | test(\"^helm-install-.*\"))))
-                ) | not
-              )
-            | select(
-                (
-                  .status.phase != \"Running\"
-                  or (.status.containerStatuses | type != \"array\")
-                  or (.status.containerStatuses | map(.ready) | any(. == false))
-                  or (
-                    (.status.conditions // [])
-                    | map(select(.type == \"Ready\" and .status != \"True\"))
-                    | length > 0
-                  )
-                )
-            )
-          ] | length"
-        ' | tr -d '\r')
-
-          echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
-
-          if [[ $UNREADY_COUNT =~ ^[0-9]+$ ]] && [ $UNREADY_COUNT -eq 0 ]; then
-            echo '✅ All pods are Ready!'
-            echo '📋 List of all Running pods:'
-            vagrant ssh -c 'kubectl get pods -A -o wide'
-            exit 0
-          fi
-
-          sleep 15
-        done
-
-        echo '❌ Pods failed to become Ready in time'
-        echo '📋 Final pod list:'
-        vagrant ssh -c 'kubectl get pods -A -o wide'
-
-        echo '🧪 Detailed status of unready pods:'
-        vagrant ssh -c '
-          kubectl get pods -A -o json |
-          jq -r "
-            .items[] |
-            select(
-              (
-                .status.phase != \"Running\" and .status.phase != \"Succeeded\"
-              ) or (
-                .status.phase == \"Running\" and
-                (
-                  (.status.containerStatuses // []) | map(.ready) | any(. == false)
-                )
-              ) or (
-                .status.reason == \"ContainerCreating\" or .status.reason == \"PodInitializing\"
-              )
-            ) |
-            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReason: \(.status.reason)\nReady States: \((.status.containerStatuses // [])[]?.ready)\n---\""
-        '
-        exit 1
-
+    - name: ✅ Check Pod Health via Python
+      run: python3 check_health.py
+      
     - name: 📡 Check Prometheus Targets
       run: |
         echo "[INFO] Waiting for Prometheus targets to become available..."
