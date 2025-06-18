@@ -39,28 +39,19 @@ jobs:
           jq "[.items[] 
             | select(
                 (
-                  # Exclude pods that are Completed (from Jobs or Helm installs)
-                  (.status.phase == \"Succeeded\" or .status.phase == \"Completed\")
-                  # Exclude pods with known helper labels like svclb
-                  or (.metadata.labels.app == \"svclb\")
-                  # Exclude pods owned by Job or Helm install hooks
-                  or (
-                    .metadata.ownerReferences[]? 
-                    | select(
-                        .kind == \"Job\" 
-                        or (.name | test(\"^helm-install-.*\"))
-                    )
-                  )
-                ) 
-                | not  # keep only real pods
+                  # Exclude svclb and helm-install helpers
+                  (.status.phase == \"Succeeded\" or .status.phase == \"Completed\") or
+                  (.metadata.labels.app == \"svclb\") or
+                  (.metadata.ownerReferences[]? | select(.kind == \"Job\" or (.name | test(\"^helm-install-.*\"))))
+                ) | not
               )
-              | select(
-                  (
-                    .status.phase != \"Running\"
-                  ) or (
-                    .status.containerStatuses | type == \"array\" and
-                    (.status.containerStatuses | map(.ready) | any(. == false))
-                  )
+            | select(
+                (
+                  .status.phase != \"Running\"
+                ) or (
+                  (.status.containerStatuses // []) == [] or
+                  (.status.containerStatuses | map(.ready) | any(. == false))
+                )
               )
           ] | length"
         ' | tr -d '\r')
