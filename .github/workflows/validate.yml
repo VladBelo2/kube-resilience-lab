@@ -70,7 +70,7 @@ jobs:
     - name: 📡 Check Prometheus Targets
       run: |
         vagrant ssh -c '
-          curl -s http://localhost:9090/api/v1/targets | grep "up"
+          curl -s http://prometheus.kube-lab.local//api/v1/targets | grep "up"
         '
 
     - name: 🧪 Optional Curl App URLs
