@@ -34,13 +34,14 @@ jobs:
       run: |
         echo "[INFO] Waiting for all pods to be Ready..."
         for i in {1..20}; do
-          UNREADY_COUNT=$(vagrant ssh -c "
+          UNREADY_COUNT=$(vagrant ssh -c '
             kubectl get pods -A -o json |
-            jq '[.items[] | select(
-              .status.phase == \"Running\" and
-              (.status.containerStatuses[]?.ready != true)
-            )] | length'
-          " | tr -d '\r')
+            jq "[.items[] | select(
+              .status.phase != \"Running\" and
+              .status.phase != \"Succeeded\" or
+              (.status.phase == \"Running\" and (.status.containerStatuses | map(.ready) | any(. == false)))
+            )] | length"
+          ' | tr -d '\r')
 
           echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
 
@@ -50,6 +51,7 @@ jobs:
             vagrant ssh -c 'kubectl get pods -A -o wide'
             exit 0
           fi
+
           sleep 15
         done
 
@@ -63,10 +65,10 @@ jobs:
           jq -r "
             .items[] |
             select(
-              .status.phase == \"Running\" and
-              (.status.containerStatuses[]?.ready != true)
+              .status.phase != \"Running\" and .status.phase != \"Succeeded\" or
+              (.status.phase == \"Running\" and (.status.containerStatuses | map(.ready) | any(. == false)))
             ) |
-            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReason: \(.status.containerStatuses[]?.state | tojson)\n---\""
+            \"Namespace: \(.metadata.namespace)\nPod: \(.metadata.name)\nStatus: \(.status.phase)\nReady States: \(.status.containerStatuses[]?.ready)\nReason: \(.status.containerStatuses[]?.state | tojson)\n---\""
         '
         exit 1
 
