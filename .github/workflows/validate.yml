@@ -44,7 +44,7 @@ jobs:
 
           echo "[CHECK] Unready pods: $UNREADY_COUNT (attempt $i/20)"
 
-          if [[ \"$UNREADY_COUNT\" =~ ^[0-9]+$ ]] && [ \"$UNREADY_COUNT\" -eq 0 ]; then
+          if [[ $UNREADY_COUNT =~ ^[0-9]+$ ]] && [ $UNREADY_COUNT -eq 0 ]; then
             echo '✅ All pods are Ready!'
             exit 0
           fi
