@@ -2,6 +2,9 @@ import subprocess
 import time
 import sys
 import json
+import functools
+
+print = functools.partial(print, flush=True)  # Ensure print is flushed immediately
 
 def check_all_pods_ready(max_attempts=20, delay=15):
     for attempt in range(1, max_attempts + 1):
@@ -41,8 +44,31 @@ def check_all_pods_ready(max_attempts=20, delay=15):
         time.sleep(delay)
 
     print("❌ Pods failed to become Ready in time.")
-    return 1
+    print("\n📋 Final pod status (wide):")
+    subprocess.run(["kubectl", "get", "pods", "-A", "-o", "wide"])
 
+    print("\n🧪 Detailed unready pods:")
+    for pod in data["items"]:
+        phase = pod["status"].get("phase", "")
+        container_statuses = pod["status"].get("containerStatuses", [])
+        ready_conditions = pod["status"].get("conditions", [])
+
+        if (
+            phase != "Running"
+            or not isinstance(container_statuses, list)
+            or any(not c.get("ready", False) for c in container_statuses)
+            or any(
+                cond.get("type") == "Ready" and cond.get("status") != "True"
+                for cond in ready_conditions
+            )
+        ):
+            print(f"- Namespace: {pod['metadata']['namespace']}")
+            print(f"  Pod:       {pod['metadata']['name']}")
+            print(f"  Phase:     {phase}")
+            print(f"  Ready:     {[c.get('ready') for c in container_statuses]}")
+            print("---")
+
+    return 1
 
 if __name__ == "__main__":
     sys.exit(check_all_pods_ready())

@@ -31,7 +31,8 @@ jobs:
         vagrant provision
 
     - name: ✅ Check Pod Health via Python
-      run: vagrant ssh -c 'python3 /home/vagrant/check_health.py'
+      run: |
+        vagrant ssh -c 'python3 /home/vagrant/check_health.py 2>&1 | tee /home/vagrant/health.log'
       
     - name: 📡 Check Prometheus Targets
       run: |
