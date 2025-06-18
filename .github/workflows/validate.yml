@@ -15,10 +15,15 @@ jobs:
     - name: 📥 Checkout Repo
       uses: actions/checkout@v4
 
-    - name: ⚙️ Install Vagrant & VirtualBox
+    - name: ⚙️ Install VirtualBox
       run: |
         sudo apt-get update
-        sudo apt-get install -y virtualbox vagrant
+        sudo apt-get install -y virtualbox
+
+    - name: ⚙️ Install Vagrant (via HashiCorp .deb)
+      run: |
+        curl -O https://releases.hashicorp.com/vagrant/2.4.1/vagrant_2.4.1-1_amd64.deb
+        sudo apt install ./vagrant_2.4.1-1_amd64.deb
 
     - name: 🚀 Start Lab VM (headless)
       run: |
