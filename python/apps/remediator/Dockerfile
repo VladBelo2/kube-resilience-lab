@@ -1,5 +1,6 @@
 FROM python:3.10
 WORKDIR /app
-COPY remediator.py .
-RUN pip install requests prometheus_client kubernetes
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 CMD ["python", "-u", "remediator.py"]
