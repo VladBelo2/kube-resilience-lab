@@ -7,7 +7,7 @@ import functools
 print = functools.partial(print, flush=True)
 
 def check_prometheus_targets(max_attempts=10, delay=10):
-    url = "http://localhost/api/v1/targets"
+    url = "http://192.168.56.120/api/v1/targets"
     headers = {"Host": "prometheus.kube-lab.local"}
 
     for attempt in range(1, max_attempts + 1):
