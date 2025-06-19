@@ -13,6 +13,11 @@ def check_prometheus_targets(max_attempts=10, delay=10):
     for attempt in range(1, max_attempts + 1):
         print(f"[INFO] Checking Prometheus targets (attempt {attempt}/{max_attempts})")
 
+        if attempt == 1:
+            print("🔎 Verifying Ingress status:")
+            subprocess.run(["kubectl", "get", "ingress", "-A", "-o", "wide"])
+            print()
+
         try:
             result = subprocess.run(
                 ["curl", "-s", "-H", f"Host: {headers['Host']}", url],
@@ -24,11 +29,18 @@ def check_prometheus_targets(max_attempts=10, delay=10):
                 time.sleep(delay)
                 continue
 
+            if not result.stdout.strip().startswith("{"):
+                print("[WARN] Prometheus responded but not with JSON.")
+                print("[DEBUG] Raw output snippet:")
+                print(result.stdout.strip()[:300] + "...\n")
+                time.sleep(delay)
+                continue
+
             try:
                 data = json.loads(result.stdout)
             except json.JSONDecodeError as e:
                 print(f"[ERROR] Failed to parse JSON: {e}")
-                print("[DEBUG] Raw output:")
+                print("[DEBUG] Full raw output:")
                 print(result.stdout.strip()[:500] + "...\n")
                 time.sleep(delay)
                 continue
