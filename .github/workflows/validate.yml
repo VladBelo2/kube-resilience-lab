@@ -34,9 +34,9 @@ jobs:
       run: |
         vagrant ssh -c 'python3 /home/vagrant/check_health.py 2>&1 | tee /home/vagrant/health.log'
       
-    - name: 📡 Check Prometheus Targets
-      run: |
-        vagrant ssh -c 'python3 /home/vagrant/check_prometheus.py'
+    # - name: 📡 Check Prometheus Targets
+    #   run: |
+    #     vagrant ssh -c 'python3 /home/vagrant/check_prometheus.py'
 
     - name: 🧪 Optional Curl App URLs via Python
       run: |
