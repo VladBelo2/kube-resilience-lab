@@ -1,6 +1,6 @@
 # 🚀 Kube Resilience Lab
 
-[![CI Status](https://github.com/vladbelo2/kube-resilience-lab/actions/workflows/main.yml/badge.svg)](https://github.com/vladbelo2/kube-resilience-lab/actions)
+[![CI Status](https://github.com/vladbelo2/kube-resilience-lab/actions/workflows/validate.yml/badge.svg)](https://github.com/vladbelo2/kube-resilience-lab/actions/workflows/validate.yml)
 [![License](https://img.shields.io/github/license/vladbelo2/kube-resilience-lab)](LICENSE)
 
 ## Descriptions
