@@ -6,8 +6,28 @@ import functools
 
 print = functools.partial(print, flush=True)
 
+def get_ingress_ip():
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "ingress", "-A", "-o", "json"],
+            capture_output=True, text=True, timeout=10
+        )
+        ingress_data = json.loads(result.stdout)
+        for item in ingress_data.get("items", []):
+            addresses = item.get("status", {}).get("loadBalancer", {}).get("ingress", [])
+            if addresses:
+                ip = addresses[0].get("ip") or addresses[0].get("hostname")
+                if ip:
+                    return ip
+    except Exception as e:
+        print(f"[ERROR] Failed to extract Ingress IP: {e}")
+    # Fallback to localhost if nothing is found
+    print("[WARN] Falling back to 127.0.0.1 as Ingress IP.")
+    return "127.0.0.1"
+
 def check_prometheus_targets(max_attempts=10, delay=10):
-    url = "http://192.168.56.120/api/v1/targets"
+    ingress_ip = get_ingress_ip()
+    url = f"http://{ingress_ip}/api/v1/targets"
     headers = {"Host": "prometheus.kube-lab.local"}
 
     for attempt in range(1, max_attempts + 1):

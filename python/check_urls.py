@@ -33,10 +33,30 @@ def get_ingress_hosts():
         print(f"[ERROR] Could not retrieve ingress hosts: {e}")
         sys.exit(1)
 
-def check_url(host):
+def get_ingress_ip():
     try:
         result = subprocess.run(
-            ["curl", "-s", "-L", "-o", "/dev/null", "-w", "%{http_code}", "-H", f"Host: {host}", "http://192.168.56.120"],
+            ["kubectl", "get", "ingress", "-A", "-o", "json"],
+            capture_output=True, text=True, timeout=10
+        )
+        ingress_data = json.loads(result.stdout)
+        for item in ingress_data.get("items", []):
+            addresses = item.get("status", {}).get("loadBalancer", {}).get("ingress", [])
+            if addresses:
+                ip = addresses[0].get("ip") or addresses[0].get("hostname")
+                if ip:
+                    return ip
+    except Exception as e:
+        print(f"[ERROR] Failed to extract Ingress IP: {e}")
+    # Fallback to localhost if nothing is found
+    print("[WARN] Falling back to 127.0.0.1 as Ingress IP.")
+    return "127.0.0.1"
+
+def check_url(host):
+    try:
+        ingress_ip = get_ingress_ip()
+        result = subprocess.run(
+            ["curl", "-s", "-L", "-o", "/dev/null", "-w", "%{http_code}", "-H", f"Host: {host}", f"http://{ingress_ip}"],
             capture_output=True,
             text=True,
             timeout=5,
